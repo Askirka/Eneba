@@ -1,0 +1,33 @@
+*{box-sizing:border-box}
+:root{font-family:system-ui,sans-serif;color:#f7f2ff;background:#161025;color-scheme:dark}
+body{margin:0}
+a{color:inherit}
+header,main,footer{padding:1rem max(1rem,calc((100% - 72rem)/2))}
+header{display:flex;align-items:center;gap:1.25rem;background:#241636}
+.brand{font-weight:800;text-decoration:none;white-space:nowrap}
+form[role=search]{flex:1;display:flex;gap:.5rem}
+form[role=search] input{flex:1;min-width:0}
+input,select,button,.button{border:1px solid #8c73a8;padding:.65rem .8rem;border-radius:.4rem;font:inherit}
+input,select{background:#281c3d;color:#fff}
+button,.button{background:#d8b4ff;color:#1b102b;font-weight:700;text-decoration:none;cursor:pointer}
+button:disabled{opacity:.45;cursor:default}
+:focus-visible{outline:3px solid #ffdd81;outline-offset:3px}
+.hero{background:radial-gradient(ellipse at 80% 10%,#7448a9,transparent 65%),linear-gradient(120deg,#31214f,#40206a);padding:clamp(1.5rem,6vw,5rem);border-radius:1rem}
+h1{font-size:clamp(2rem,5vw,3.8rem);margin:.25em 0}
+.hero p{margin-bottom:1.75rem}
+.section-title,.pages{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,13rem),1fr));gap:1rem}
+.card{display:flex;flex-direction:column;overflow:hidden;border:1px solid #59446d;border-radius:.65rem;text-decoration:none;background:#261a37}
+.card:hover{border-color:#dfbdff}
+.cover{min-height:8rem;display:flex;align-items:end;background:linear-gradient(140deg,#352452,#714392);padding:1rem;font-size:1.3rem;font-weight:800}
+.card:nth-child(even) .cover{background:linear-gradient(140deg,#2b2856,#5455a0)}
+.card-details{display:grid;gap:.5rem;padding:1rem}
+.meta,footer{color:#ddcce9}
+.filters{display:flex;gap:.65rem;align-items:end;flex-wrap:wrap}
+.filters label{display:grid;gap:.25rem;text-transform:capitalize}
+.price input{width:6.5rem}
+.pages{justify-content:center;margin:1.5rem 0}
+.offers{padding:0}
+.offers li{display:flex;gap:1rem;justify-content:space-between;padding:1rem;border-bottom:1px solid #59446d;flex-wrap:wrap}
+footer{margin-top:2rem;border-top:1px solid #59446d}
+@media(max-width:40rem){header{flex-wrap:wrap;justify-content:space-between}form[role=search]{order:3;flex-basis:100%}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cover{font-size:1rem;padding:.75rem}}
