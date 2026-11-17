@@ -55,7 +55,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const next = params.get('next') ?? ''
-  const destination = next === '/account' || /^\/checkout(?:\?offer=[1-9]\d*)?$/.test(next) ? next : '/'
+  const destination = next === '/account' || /^\/games\/[a-z0-9-]+$/i.test(next) || /^\/checkout(?:\?offer=[1-9]\d*)?$/.test(next) ? next : '/'
   const authQuery = destination === '/' ? '' : '?' + new URLSearchParams({ next: destination })
   const [password, setPassword] = useState('')
   const register = mode === 'register'

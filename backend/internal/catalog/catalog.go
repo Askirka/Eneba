@@ -49,7 +49,7 @@ LEFT JOIN LATERAL (
 ORDER BY o.price_cents, o.id LIMIT 1
 ) best ON true`
 
-const filterQuery = ` WHERE
+const filterQuery = ` WHERE p.deleted_at IS NULL AND
 ($1 = '' OR p.title ILIKE '%' || $2 || '%' ESCAPE '!' OR (length($1) >= 3 AND word_similarity($1,p.title) >= 0.38))
 AND ($3 = '' OR p.platform = $3)
 AND ($4 = '' OR p.region = $4)
@@ -76,7 +76,7 @@ func (r Repository) List(ctx context.Context, f Filter, escapedSearch string) ([
 
 func (r Repository) Detail(ctx context.Context, id string) (Product, []Offer, error) {
 	var product Product
-	if err := r.DB.GetContext(ctx, &product, productQuery+" WHERE p.id=$1", id); err != nil {
+	if err := r.DB.GetContext(ctx, &product, productQuery+" WHERE p.id=$1 AND p.deleted_at IS NULL", id); err != nil {
 		return product, nil, err
 	}
 	offers := []Offer{}
@@ -96,6 +96,6 @@ func (r Repository) Blocks(ctx context.Context) ([]Block, error) {
 func (r Repository) BlockProducts(ctx context.Context, blockType string) ([]Product, error) {
 	products := []Product{}
 	err := r.DB.SelectContext(ctx, &products, productQuery+` JOIN homepage_products hp ON hp.product_id=p.id
- WHERE hp.block_type=$1 ORDER BY hp.position`, blockType)
+ WHERE hp.block_type=$1 AND p.deleted_at IS NULL ORDER BY hp.position`, blockType)
 	return products, err
 }

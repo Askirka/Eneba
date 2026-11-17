@@ -4,6 +4,7 @@ import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate, useParams
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import './styles.css'
 import { Cover } from './cover'
+import { ProductRating } from './rating'
 import { OrderPage, ProfilePage } from './profile'
 import { CartProvider, OfferActions, PurchasePage, money, useCart } from './cart'
 import { AccountControls, AuthPage } from './account'
@@ -149,7 +150,7 @@ function Game() {
     {product && <><Link to="/store">Back to store</Link><div className="game-intro"><Cover key={product.id} product={product} /><div><h1>{product.title}</h1>
       <p className="meta">{product.platform} · {product.region}</p>
       <p>{product.description}</p><p>{product.activation}</p></div></div>
-      <h2>Seller offers</h2>
+      <ProductRating key={product.id} productId={product.id} /><h2>Seller offers</h2>
       {!query.data?.offers.length && <p>No offers are available.</p>}
       <ul className="offers">{query.data?.offers.map(offer => <li key={offer.id}>
         <strong>{offer.seller}</strong><span>{offer.rating.toFixed(2)} / 5</span><span>{offer.stock ? offer.stock + ' available' : 'Sold out'}</span><strong>{money(offer.priceCents)}</strong>{offer.stock > 0 && <OfferActions id={offer.id} />}

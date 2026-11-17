@@ -38,6 +38,8 @@ type accountProfile struct {
 
 func mountProfile(r chi.Router, db *sqlx.DB, internal func(http.ResponseWriter, *http.Request, error)) {
 	api := profileAPI{db, internal}
+	r.Get("/api/products/{id}/ratings", api.ratings)
+	r.Post("/api/products/{id}/ratings", api.authenticated(api.rate))
 	r.Route("/api/account", func(r chi.Router) {
 		r.Get("/", api.authenticated(api.profile))
 		r.Post("/", api.authenticated(api.update))
@@ -47,13 +49,14 @@ func mountProfile(r chi.Router, db *sqlx.DB, internal func(http.ResponseWriter, 
 		r.Get("/orders/{id}", api.authenticated(api.order))
 		r.Get("/items", api.authenticated(api.listings))
 		r.Post("/items", api.authenticated(api.createListing))
+		r.Delete("/items/{id}", api.authenticated(api.deleteListing))
 	})
 }
 
 func (a profileAPI) authenticated(next func(http.ResponseWriter, *http.Request, int64)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		if r.Method == http.MethodPost && (r.Header.Get("X-Game-Market-Request") != "1" || r.Header.Get("Sec-Fetch-Site") == "cross-site") {
+		if (r.Method == http.MethodPost || r.Method == http.MethodDelete) && (r.Header.Get("X-Game-Market-Request") != "1" || r.Header.Get("Sec-Fetch-Site") == "cross-site") {
 			fail(w, 403, "Request rejected.")
 			return
 		}
@@ -286,7 +289,7 @@ func (a profileAPI) listings(w http.ResponseWriter, r *http.Request, id int64) {
 	err := a.db.SelectContext(r.Context(), &items, `SELECT p.id,p.title,o.price_cents,count(k.id) stock
         FROM products p JOIN sellers s ON s.owner_id=p.owner_id JOIN offers o ON o.product_id=p.id AND o.seller_id=s.id
         LEFT JOIN inventory_keys k ON k.offer_id=o.id AND k.redeemed_at IS NULL
-        WHERE p.owner_id=$1 GROUP BY p.id,o.id ORDER BY p.title,p.id`, id)
+        WHERE p.owner_id=$1 AND p.deleted_at IS NULL GROUP BY p.id,o.id ORDER BY p.title,p.id`, id)
 	if err != nil {
 		a.internal(w, r, err)
 		return

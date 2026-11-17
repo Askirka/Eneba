@@ -51,7 +51,7 @@ func mountCheckout(r chi.Router, db *sqlx.DB, internal func(http.ResponseWriter,
 			item := quoteItem{OfferID: id, Title: "Unavailable offer"}
 			err := db.GetContext(r.Context(), &item, `SELECT o.id offer_id,p.id product_id,p.title,s.name seller,o.price_cents price,
                 EXISTS (SELECT 1 FROM inventory_keys k WHERE k.offer_id=o.id AND k.redeemed_at IS NULL) available
-                FROM offers o JOIN products p ON p.id=o.product_id JOIN sellers s ON s.id=o.seller_id WHERE o.id=$1`, id)
+                FROM offers o JOIN products p ON p.id=o.product_id JOIN sellers s ON s.id=o.seller_id WHERE o.id=$1 AND p.deleted_at IS NULL`, id)
 			if err != nil && !errors.Is(err, sql.ErrNoRows) {
 				internal(w, r, err)
 				return
@@ -132,7 +132,7 @@ func mountCheckout(r chi.Router, db *sqlx.DB, internal func(http.ResponseWriter,
 			err := tx.GetContext(ctx, &key, `SELECT k.id,p.title,s.name seller,o.price_cents
                 FROM inventory_keys k JOIN offers o ON o.id=k.offer_id
                 JOIN products p ON p.id=o.product_id JOIN sellers s ON s.id=o.seller_id
-                WHERE k.offer_id=$1 AND k.redeemed_at IS NULL ORDER BY k.id LIMIT 1 FOR UPDATE OF k,o`, id)
+                WHERE k.offer_id=$1 AND k.redeemed_at IS NULL AND p.deleted_at IS NULL ORDER BY k.id LIMIT 1 FOR UPDATE OF k,o,p`, id)
 			if errors.Is(err, sql.ErrNoRows) {
 				fail(w, 409, "An offer is sold out. Refresh your cart.")
 				return

@@ -8,10 +8,10 @@ const old = 'old-password-123'
 const fresh = 'new-password-123'
 const picture = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAANSURBVBhXY2hgaPgPAAQEAgCs4Z27AAAAAElFTkSuQmCC'
 
-async function call(path, status, { body, cookie } = {}) {
+async function call(path, status, { body, cookie, method = body ? 'POST' : 'GET' } = {}) {
   const headers = cookie ? { Cookie: cookie } : {}
-  if (body) Object.assign(headers, { 'Content-Type': 'application/json', 'X-Game-Market-Request': '1' })
-  const response = await fetch(base + path, { method: body ? 'POST' : 'GET', headers, body: body && JSON.stringify(body) })
+  if (method !== 'GET') Object.assign(headers, { 'Content-Type': 'application/json', 'X-Game-Market-Request': '1' })
+  const response = await fetch(base + path, { method, headers, body: body && JSON.stringify(body) })
   assert.equal(response.status, status, path + (response.status !== status ? ': ' + await response.text() : ''))
   return response
 }
@@ -47,6 +47,18 @@ const listing = await (await call('/account/items', 201, { cookie: seller, body:
 assert.equal(listing.stock, 1)
 const publicItem = await (await call('/products/' + listing.id, 200)).json()
 const offer = publicItem.product.bestOfferId
+const ratingsPath = '/products/' + listing.id + '/ratings'
+assert.deepEqual(await (await call(ratingsPath, 200)).json(), { average: null, count: 0, mine: null })
+await call(ratingsPath, 401, { body: { grade: 10 } })
+await call(ratingsPath, 400, { cookie: buyer, body: { grade: null } })
+await call(ratingsPath, 400, { cookie: buyer, body: { grade: 11 } })
+await call(ratingsPath, 204, { cookie: buyer, body: { grade: 0 } })
+assert.deepEqual(await (await call(ratingsPath, 200, { cookie: buyer })).json(), { average: 0, count: 1, mine: 0 })
+await call(ratingsPath, 204, { cookie: buyer, body: { grade: 10 } })
+assert.deepEqual(await (await call(ratingsPath, 200, { cookie: seller })).json(), { average: 10, count: 1, mine: null })
+const deletePath = '/account/items/' + listing.id
+await call(deletePath, 401, { method: 'DELETE' })
+await call(deletePath, 403, { method: 'DELETE', cookie: buyer })
 assert.equal(publicItem.product.title, item.title)
 assert.equal((await (await call('/account/items', 200, { cookie: seller })).json())[0].id, listing.id)
 assert.deepEqual(await (await call('/account/items', 200, { cookie: buyer })).json(), [])
@@ -63,3 +75,16 @@ await call('/account/orders/' + purchase.id, 404, { cookie: seller })
 assert.equal((await (await call('/account/items', 200, { cookie: seller })).json())[0].stock, 0)
 console.log('Private profiles, avatar upload/removal, password change, authenticated listings, and buyer-only order history passed.')
 
+
+await call(deletePath, 204, { method: 'DELETE', cookie: seller })
+await call('/products/' + listing.id, 404)
+await call(ratingsPath, 404)
+await call(ratingsPath, 404, { cookie: seller, body: { grade: 8 } })
+const search = await (await call('/products?q=' + encodeURIComponent(item.title), 200)).json()
+assert.ok(!search.items.some(product => product.id === listing.id))
+assert.deepEqual(await (await call('/account/items', 200, { cookie: seller })).json(), [])
+const quote = await (await call('/cart/quote', 200, { body: { offers: [offer] } })).json()
+assert.equal(quote.items[0].available, false)
+const archivedOrder = await (await call('/account/orders/' + purchase.id, 200, { cookie: buyer })).json()
+assert.equal(archivedOrder.items[0].code, purchase.items[0].code)
+console.log('Ratings from 0 to 10, creator-only removal, catalog visibility, and historical orders passed.')

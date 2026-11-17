@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { money } from './cart'
 
 type Profile = { id: number; name: string; email: string; hasAvatar: boolean }
@@ -12,10 +12,10 @@ class AccountError extends Error {
   constructor(readonly status: number, message: string) { super(message) }
 }
 
-async function request<T>(path: string, signal?: AbortSignal, body?: object): Promise<T> {
+async function request<T>(path: string, signal?: AbortSignal, body?: object, method = body ? 'POST' : 'GET'): Promise<T> {
   const response = await fetch('/api/account' + path, {
-    method: body ? 'POST' : 'GET', signal,
-    headers: body ? { 'Content-Type': 'application/json', 'X-Game-Market-Request': '1' } : undefined,
+    method, signal,
+    headers: method !== 'GET' ? { 'Content-Type': 'application/json', 'X-Game-Market-Request': '1' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   })
   if (response.status === 204) return undefined as T
@@ -159,13 +159,27 @@ function Listings({ userId }: { userId: number }) {
   const client = useQueryClient()
   const [created, setCreated] = useState<Listing>()
   const query = useQuery({ queryKey: ['account-items', userId], queryFn: ({ signal }) => request<Listing[]>('/items', signal) })
+  const remove = useMutation({
+    mutationFn: (itemId: string) => request<void>('/items/' + encodeURIComponent(itemId), undefined, undefined, 'DELETE'),
+    onSuccess: (_, itemId) => {
+      setCreated(item => item?.id === itemId ? undefined : item)
+      for (const key of [['account-items', userId], ['product', itemId], ['ratings', itemId], ['products'], ['home'], ['quote']]) {
+        void client.invalidateQueries({ queryKey: key })
+      }
+    },
+  })
   return <section className="profile-section" id="listings"><h2>My items</h2>
     {query.isPending && <p role="status">Loading items…</p>}
     {query.isError && <p role="alert">{query.error.message}</p>}
     {query.data?.length === 0 && <p>You haven’t published any items yet.</p>}
     <ul className="purchase-lines">{query.data?.map(item => <li key={item.id}>
       <Link to={'/games/' + item.id}>{item.title}</Link><span>{item.stock ? 'Available' : 'Sold out'}</span><strong>{money(item.priceCents)}</strong>
+      <button className="secondary" disabled={remove.isPending} onClick={() => {
+        if (window.confirm('Delete ' + item.title + ' from the catalog?')) remove.mutate(item.id)
+      }} aria-label={'Delete ' + item.title}>Delete</button>
     </li>)}</ul>
+    {remove.isSuccess && <p role="status">Item deleted.</p>}
+    {remove.isError && <p role="alert">{remove.error.message}</p>}
     <h3>Create item</h3>
     <p>Publish a game with one demonstration key.</p>
     <AccountForm reset action={async data => {
