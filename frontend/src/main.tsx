@@ -4,6 +4,7 @@ import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate, useParams
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import './styles.css'
 import { Cover } from './cover'
+import { OrderPage, ProfilePage } from './profile'
 import { CartProvider, OfferActions, PurchasePage, money, useCart } from './cart'
 import { AccountControls, AuthPage } from './account'
 
@@ -160,6 +161,6 @@ function Game() {
 const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 createRoot(document.getElementById('root')!).render(
   <QueryClientProvider client={client}><BrowserRouter><CartProvider><Header /><main>
-    <Routes><Route path="/" element={<Home />} /><Route path="/store" element={<Store />} /><Route path="/games/:id" element={<Game />} /><Route path="/cart" element={<PurchasePage />} /><Route path="/checkout" element={<PurchasePage checkout />} /><Route path="/login" element={<AuthPage key="login" mode="login" />} /><Route path="/register" element={<AuthPage key="register" mode="register" />} /><Route path="*" element={<h1>Page not found</h1>} /></Routes>
+    <Routes><Route path="/" element={<Home />} /><Route path="/store" element={<Store />} /><Route path="/games/:id" element={<Game />} /><Route path="/account" element={<ProfilePage />} /><Route path="/account/orders/:id" element={<OrderPage />} /><Route path="/cart" element={<PurchasePage />} /><Route path="/checkout" element={<PurchasePage checkout />} /><Route path="/login" element={<AuthPage key="login" mode="login" />} /><Route path="/register" element={<AuthPage key="register" mode="register" />} /><Route path="*" element={<h1>Page not found</h1>} /></Routes>
   </main><footer>Game Market · Educational demo</footer></CartProvider></BrowserRouter></QueryClientProvider>
 )

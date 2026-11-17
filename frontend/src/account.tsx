@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 type Account = { id: number; email: string }
@@ -26,13 +26,17 @@ async function authPost<T>(action: string, credentials?: Credentials): Promise<T
 }
 
 export function AccountControls() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const client = useQueryClient()
   const account = useQuery({ queryKey: accountKey, queryFn: ({ signal }) => currentAccount(signal) })
   const logout = useMutation({
     mutationFn: () => authPost<void>('logout'),
     onSuccess: async () => {
       await client.cancelQueries({ queryKey: accountKey })
+      if (location.pathname.startsWith('/account')) navigate('/', { replace: true })
       client.setQueryData(accountKey, null)
+      client.removeQueries({ predicate: query => String(query.queryKey[0]).startsWith('account-') })
     },
   })
 
@@ -40,7 +44,7 @@ export function AccountControls() {
   if (account.isError) return <button onClick={() => void account.refetch()}>Retry account check</button>
   if (!account.data) return <div className="account-controls"><Link to="/login">Log in</Link><Link to="/register">Create account</Link></div>
   return <div className="account-controls">
-    <span className="account-email">{account.data.email}</span>
+    <Link to="/account">My account</Link>
     <button onClick={() => logout.mutate()} disabled={logout.isPending}>{logout.isPending ? 'Logging out…' : 'Log out'}</button>
     {logout.isError && <span role="alert">{logout.error.message}</span>}
   </div>
@@ -51,7 +55,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const next = params.get('next') ?? ''
-  const destination = /^\/checkout(?:\?offer=[1-9]\d*)?$/.test(next) ? next : '/'
+  const destination = next === '/account' || /^\/checkout(?:\?offer=[1-9]\d*)?$/.test(next) ? next : '/'
   const authQuery = destination === '/' ? '' : '?' + new URLSearchParams({ next: destination })
   const [password, setPassword] = useState('')
   const register = mode === 'register'

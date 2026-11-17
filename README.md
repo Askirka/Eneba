@@ -48,10 +48,16 @@ Product cover images come from the respective publishers' Steam library assets a
 | POST /api/cart/quote | Current availability and prices for offer IDs |
 | POST /api/checkout | Confirm purchase for the current account and return demo keys |
 
+## Personal account
+
+Open **My account** after signing in. Update the display name and upload or remove a JPEG or PNG profile picture. **Reset password** changes the password using the current password and revokes other sessions. Purchase history includes order details and demo keys and is accessible only to each buyer. **My items** lists the signed-in member’s published items. Creating a listing publishes it in the catalog with one synthetic key.
+
+Run `node scripts/profile-smoke.mjs` against the running app to check account settings, order ownership, and authenticated listings. This test creates demo accounts, a listing, and an order.
+
 ## Verify
 
 - In `backend`, run `go test ./...` and `go vet ./...`.
 - In `frontend`, run `npm ci` and `npm run build`.
 - With Compose running, execute `node scripts/smoke.mjs` and `node scripts/auth-smoke.mjs` from the project root. Run `node scripts/checkout-smoke.mjs` to verify checkout with seeded inventory. The auth test registers a unique `@example.test` account and revokes its session when finished.
 
-The order history interface is pending. GitHub publication, public hosting, and the full AI conversation transcript are pending. The active GoLand Air session contains the original messages. Keep its transcript with the submission once exported or copied from the IDE.
+ GitHub publication, public hosting, and the full AI conversation transcript are pending. The active GoLand Air session contains the original messages. Keep its transcript with the submission once exported or copied from the IDE.

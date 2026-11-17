@@ -187,6 +187,15 @@ func (a authHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
+	var currentHash string
+	if err := tx.GetContext(r.Context(), &currentHash, "SELECT password_hash FROM users WHERE id=$1 FOR UPDATE", user.ID); err != nil {
+		a.internal(w, r, err)
+		return
+	}
+	if currentHash != hash {
+		fail(w, http.StatusUnauthorized, "Email or password is incorrect.")
+		return
+	}
 	a.finishSignIn(w, r, tx, user, http.StatusOK)
 }
 

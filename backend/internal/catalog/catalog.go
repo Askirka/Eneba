@@ -40,7 +40,7 @@ type Filter struct {
 
 type Repository struct{ DB *sqlx.DB }
 
-const productQuery = `SELECT p.*, best.price_cents, best.offer_id FROM products p
+const productQuery = `SELECT p.id, p.title, p.platform, p.region, p.description, p.activation, best.price_cents, best.offer_id FROM products p
 LEFT JOIN LATERAL (
     SELECT o.price_cents, o.id AS offer_id
     FROM offers o WHERE o.product_id = p.id AND EXISTS (

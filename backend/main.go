@@ -68,6 +68,7 @@ func run(log *zap.Logger) error {
 		return err
 	}
 	mountCheckout(r, db, internal)
+	mountProfile(r, db, internal)
 	r.Get("/api/home", func(w http.ResponseWriter, r *http.Request) {
 		blocks, err := service.Home(r.Context(), func(block string, err error) {
 			log.Warn("homepage block failed", zap.String("block", block), zap.Error(err))

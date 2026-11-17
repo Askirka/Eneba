@@ -119,7 +119,7 @@ function PurchaseSummary({ ids, direct, checkout, returnTo }: { ids: number[]; d
   if (receipt) return <section className="purchase-panel"><h1>Order #{receipt.id} confirmed</h1>
     <p>Paid {money(receipt.totalCents)} in the demo checkout.</p>
     <ul className="purchase-lines">{receipt.items.map(item => <li key={item.code}><strong>{item.title}</strong><code>{item.code}</code></li>)}</ul>
-    <Link className="button" to="/store">Continue shopping</Link>
+    <div className="offer-actions"><Link className="button" to="/store">Continue shopping</Link><Link className="button secondary" to={'/account/orders/' + receipt.id}>View order</Link></div>
   </section>
 
   return <section className="purchase-panel"><h1>{checkout ? 'Checkout' : 'Your cart'}</h1>

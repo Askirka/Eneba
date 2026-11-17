@@ -179,9 +179,9 @@ func mountCheckout(r chi.Router, db *sqlx.DB, internal func(http.ResponseWriter,
 	})
 }
 
-func receiptItems(r *http.Request, tx *sqlx.Tx, orderID int64) ([]receiptItem, error) {
+func receiptItems(r *http.Request, db sqlx.QueryerContext, orderID int64) ([]receiptItem, error) {
 	var items []receiptItem
-	err := tx.SelectContext(r.Context(), &items, `SELECT i.title,i.seller,i.price_cents,k.code
+	err := sqlx.SelectContext(r.Context(), db, &items, `SELECT i.title,i.seller,i.price_cents,k.code
         FROM order_items i JOIN inventory_keys k ON k.id=i.key_id WHERE i.order_id=$1 ORDER BY i.key_id`, orderID)
 	return items, err
 }
