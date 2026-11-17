@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import './styles.css'
 import { Cover } from './cover'
 import { ProductRating } from './rating'
+import { ProductComments } from './comments'
 import { OrderPage, ProfilePage } from './profile'
 import { CartProvider, OfferActions, PurchasePage, money, useCart } from './cart'
 import { AccountControls, AuthPage } from './account'
@@ -154,7 +155,7 @@ function Game() {
       {!query.data?.offers.length && <p>No offers are available.</p>}
       <ul className="offers">{query.data?.offers.map(offer => <li key={offer.id}>
         <strong>{offer.seller}</strong><span>{offer.rating.toFixed(2)} / 5</span><span>{offer.stock ? offer.stock + ' available' : 'Sold out'}</span><strong>{money(offer.priceCents)}</strong>{offer.stock > 0 && <OfferActions id={offer.id} />}
-      </li>)}</ul>
+      </li>)}</ul><ProductComments key={product.id} productId={product.id} />
     </>}
   </Feedback>
 }

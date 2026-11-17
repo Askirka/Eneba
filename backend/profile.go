@@ -39,6 +39,8 @@ type accountProfile struct {
 func mountProfile(r chi.Router, db *sqlx.DB, internal func(http.ResponseWriter, *http.Request, error)) {
 	api := profileAPI{db, internal}
 	r.Get("/api/products/{id}/ratings", api.ratings)
+	r.Get("/api/products/{id}/comments", api.comments)
+	r.Post("/api/products/{id}/comments", api.authenticated(api.addComment))
 	r.Post("/api/products/{id}/ratings", api.authenticated(api.rate))
 	r.Route("/api/account", func(r chi.Router) {
 		r.Get("/", api.authenticated(api.profile))
