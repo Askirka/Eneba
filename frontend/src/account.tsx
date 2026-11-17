@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 type Account = { id: number; email: string }
@@ -49,6 +49,10 @@ export function AccountControls() {
 export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const client = useQueryClient()
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const next = params.get('next') ?? ''
+  const destination = /^\/checkout(?:\?offer=[1-9]\d*)?$/.test(next) ? next : '/'
+  const authQuery = destination === '/' ? '' : '?' + new URLSearchParams({ next: destination })
   const [password, setPassword] = useState('')
   const register = mode === 'register'
   const title = register ? 'Create account' : 'Log in'
@@ -57,7 +61,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
     onSuccess: async (account) => {
       await client.cancelQueries({ queryKey: accountKey })
       client.setQueryData(accountKey, account)
-      navigate('/', { replace: true })
+      navigate(destination, { replace: true })
     },
   })
 
@@ -84,6 +88,6 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
       {submit.isError && <p role="alert">{submit.error.message}</p>}
       <button disabled={submit.isPending || tooLong}>{submit.isPending ? 'Please wait…' : title}</button>
     </form>
-    {register ? <Link to="/login">Already registered? Log in</Link> : <Link to="/register">Create an account</Link>}
+    {register ? <Link to={'/login' + authQuery}>Already registered? Log in</Link> : <Link to={'/register' + authQuery}>Create an account</Link>}
   </section>
 }

@@ -37,10 +37,21 @@ Open **Create account** or **Log in** from the header. PostgreSQL stores normali
 
 Authentication POST requests require the same-origin header `X-Game-Market-Request: 1`. Registration and login accept a JSON object with `email` and `password`. The browser receives an HttpOnly, SameSite=Lax cookie. Set `SESSION_COOKIE_SECURE=true` for an HTTPS deployment.
 
+## Cart and demo purchases
+
+Add a game from the catalog or select a seller on its product page. The catalog action selects the lowest-priced available offer. The cart stays in the browser and checkout requires an account. **Buy now** on a product checks out that offer directly. PostgreSQL saves successful orders and allocates one synthetic key per selected offer in the same transaction. The checkout can simulate a declined payment, and the API checks the quoted total again before committing.
+
+Product cover images come from the respective publishers' Steam library assets and are served locally. All purchases are simulated and use demonstration keys.
+
+| Request | Response |
+| --- | --- |
+| POST /api/cart/quote | Current availability and prices for offer IDs |
+| POST /api/checkout | Confirm purchase for the current account and return demo keys |
+
 ## Verify
 
 - In `backend`, run `go test ./...` and `go vet ./...`.
 - In `frontend`, run `npm ci` and `npm run build`.
-- With Compose running, execute `node scripts/smoke.mjs` and `node scripts/auth-smoke.mjs` from the project root. The auth test registers a unique `@example.test` account and revokes its session when finished.
+- With Compose running, execute `node scripts/smoke.mjs` and `node scripts/auth-smoke.mjs` from the project root. Run `node scripts/checkout-smoke.mjs` to verify checkout with seeded inventory. The auth test registers a unique `@example.test` account and revokes its session when finished.
 
-The next milestone covers guest cart persistence, transactional simulated checkout, order history, and final visual assets. GitHub publication, public hosting, and the full AI conversation transcript are pending. The active GoLand Air session contains the original messages. Keep its transcript with the submission once exported or copied from the IDE.
+The order history interface is pending. GitHub publication, public hosting, and the full AI conversation transcript are pending. The active GoLand Air session contains the original messages. Keep its transcript with the submission once exported or copied from the IDE.

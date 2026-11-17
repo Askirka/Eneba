@@ -6,6 +6,7 @@ import (
 )
 
 type Product struct {
+	BestOfferID *int64 `db:"offer_id" json:"bestOfferId"`
 	ID          string `db:"id" json:"id"`
 	Title       string `db:"title" json:"title"`
 	Platform    string `db:"platform" json:"platform"`
@@ -39,12 +40,13 @@ type Filter struct {
 
 type Repository struct{ DB *sqlx.DB }
 
-const productQuery = `SELECT p.*, best.price_cents FROM products p
+const productQuery = `SELECT p.*, best.price_cents, best.offer_id FROM products p
 LEFT JOIN LATERAL (
-    SELECT MIN(o.price_cents) AS price_cents
+    SELECT o.price_cents, o.id AS offer_id
     FROM offers o WHERE o.product_id = p.id AND EXISTS (
         SELECT 1 FROM inventory_keys k WHERE k.offer_id = o.id AND k.redeemed_at IS NULL
     )
+ORDER BY o.price_cents, o.id LIMIT 1
 ) best ON true`
 
 const filterQuery = ` WHERE
