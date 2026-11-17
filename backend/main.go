@@ -35,7 +35,7 @@ func run(log *zap.Logger) error {
 	defer stop()
 	startup, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	db, err := sqlx.ConnectContext(startup, "postgres", os.Getenv("DATABASE_URL"))
+	db, err := connectDatabase(startup, os.Getenv("DATABASE_URL"))
 	if err != nil {
 		return err
 	}
@@ -63,6 +63,9 @@ func run(log *zap.Logger) error {
 	internal := func(w http.ResponseWriter, r *http.Request, err error) {
 		log.Error("request failed", zap.String("request_id", middleware.GetReqID(r.Context())), zap.Error(err))
 		fail(w, 500, "Something went wrong.")
+	}
+	if err := mountAuth(r, db, os.Getenv("SESSION_COOKIE_SECURE") == "true", internal); err != nil {
+		return err
 	}
 	r.Get("/api/home", func(w http.ResponseWriter, r *http.Request) {
 		blocks, err := service.Home(r.Context(), func(block string, err error) {
@@ -127,4 +130,23 @@ func reply(w http.ResponseWriter, status int, body any) {
 
 func fail(w http.ResponseWriter, status int, message string) {
 	reply(w, status, map[string]string{"error": message})
+}
+
+func connectDatabase(ctx context.Context, dsn string) (*sqlx.DB, error) {
+	retry := time.NewTicker(time.Second)
+	defer retry.Stop()
+	for {
+		db, err := sqlx.ConnectContext(ctx, "postgres", dsn)
+		if err == nil {
+			return db, nil
+		}
+		if db != nil {
+			_ = db.Close()
+		}
+		select {
+		case <-ctx.Done():
+			return nil, err
+		case <-retry.C:
+		}
+	}
 }

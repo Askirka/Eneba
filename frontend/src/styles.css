@@ -31,3 +31,10 @@ h1{font-size:clamp(2rem,5vw,3.8rem);margin:.25em 0}
 .offers li{display:flex;gap:1rem;justify-content:space-between;padding:1rem;border-bottom:1px solid #59446d;flex-wrap:wrap}
 footer{margin-top:2rem;border-top:1px solid #59446d}
 @media(max-width:40rem){header{flex-wrap:wrap;justify-content:space-between}form[role=search]{order:3;flex-basis:100%}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cover{font-size:1rem;padding:.75rem}}
+.account-controls { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.account-email { max-width: 14rem; overflow-wrap: anywhere; }
+.auth-panel { max-width: 30rem; margin: 3rem auto; padding: clamp(1rem, 5vw, 2rem); border: 1px solid #59446d; border-radius: .65rem; background: #261a37; }
+.auth-panel h1 { font-size: clamp(1.75rem, 5vw, 2.75rem); }
+.auth-panel form, .auth-panel label { display: grid; gap: .5rem; }
+.auth-panel form { gap: 1rem; margin: 1.5rem 0; }
+.auth-panel input { min-width: 0; width: 100%; }

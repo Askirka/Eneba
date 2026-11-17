@@ -15,6 +15,7 @@ services:
   api:
     build: ./backend
     environment:
+      SESSION_COOKIE_SECURE: "${SESSION_COOKIE_SECURE:-false}"
       DATABASE_URL: "host=db dbname=games user=games password=${POSTGRES_PASSWORD:-games} sslmode=disable"
     depends_on:
       db:

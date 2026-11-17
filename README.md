@@ -1,6 +1,6 @@
 # Game Market
 
-Educational digital game marketplace. The starter includes a PostgreSQL-backed catalog, homepage blocks, search, and seller offers.
+Educational digital game marketplace. The starter includes a PostgreSQL-backed catalog, homepage blocks, search, seller offers, and user accounts.
 
 ## Run locally
 
@@ -20,6 +20,10 @@ The Compose default password is for the local demo. Copy `.env.example` to `.env
 | GET /api/products?q=cyberpnk | Paginated game catalog |
 | GET /api/search?q=witchr | Same search and filter contract as the catalog |
 | GET /api/products/hades | Game details and seller offers |
+| POST /api/auth/register | Create an account and sign in |
+| POST /api/auth/login | Start a session for an existing account |
+| GET /api/auth/me | Return the current account |
+| POST /api/auth/logout | Revoke the current session |
 | GET /healthz | Process health |
 | GET /readyz | Database readiness |
 
@@ -27,10 +31,16 @@ Catalog filters are `platform`, `region`, `min`, and `max`; price bounds are int
 
 Homepage configuration comes from `homepage_blocks`. Each listing block has its own ordered product collection in `homepage_products`. The API composes those collections with live catalog prices. The hero reads its copy and CTA from its configuration row.
 
+## Accounts
+
+Open **Create account** or **Log in** from the header. PostgreSQL stores normalized email addresses, bcrypt password hashes, and hashes of session tokens. Registration signs the user in immediately. A session expires after seven days, and logging out revokes it in the database.
+
+Authentication POST requests require the same-origin header `X-Game-Market-Request: 1`. Registration and login accept a JSON object with `email` and `password`. The browser receives an HttpOnly, SameSite=Lax cookie. Set `SESSION_COOKIE_SECURE=true` for an HTTPS deployment.
+
 ## Verify
 
 - In `backend`, run `go test ./...` and `go vet ./...`.
 - In `frontend`, run `npm ci` and `npm run build`.
-- With Compose running, execute `node scripts/smoke.mjs` from the project root.
+- With Compose running, execute `node scripts/smoke.mjs` and `node scripts/auth-smoke.mjs` from the project root. The auth test registers a unique `@example.test` account and revokes its session when finished.
 
-The next milestone covers guest cart persistence, account sessions, transactional simulated checkout, order history, and final visual assets. GitHub publication, public hosting, and the full AI conversation transcript are pending. The active GoLand Air session contains the original messages. Keep its transcript with the submission once exported or copied from the IDE.
+The next milestone covers guest cart persistence, transactional simulated checkout, order history, and final visual assets. GitHub publication, public hosting, and the full AI conversation transcript are pending. The active GoLand Air session contains the original messages. Keep its transcript with the submission once exported or copied from the IDE.

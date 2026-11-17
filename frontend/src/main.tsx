@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import './styles.css'
+import { AccountControls, AuthPage } from './account'
 
 type Product = { id: string; title: string; platform: string; region: string; priceCents: number | null; description: string; activation: string }
 type Offer = { id: number; seller: string; rating: number; priceCents: number; stock: number }
@@ -34,7 +35,7 @@ function Header() {
       <input aria-label="Search games" name="q" defaultValue={current} placeholder="Search games" maxLength={100} />
       <button>Search</button>
     </form>
-    <Link to="/store">Store</Link>
+    <Link to="/store">Store</Link><AccountControls />
   </header>
 }
 
@@ -152,6 +153,6 @@ function Game() {
 const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 createRoot(document.getElementById('root')!).render(
   <QueryClientProvider client={client}><BrowserRouter><Header /><main>
-    <Routes><Route path="/" element={<Home />} /><Route path="/store" element={<Store />} /><Route path="/games/:id" element={<Game />} /><Route path="*" element={<h1>Page not found</h1>} /></Routes>
+    <Routes><Route path="/" element={<Home />} /><Route path="/store" element={<Store />} /><Route path="/games/:id" element={<Game />} /><Route path="/login" element={<AuthPage key="login" mode="login" />} /><Route path="/register" element={<AuthPage key="register" mode="register" />} /><Route path="*" element={<h1>Page not found</h1>} /></Routes>
   </main><footer>Game Market · Educational demo</footer></BrowserRouter></QueryClientProvider>
 )
