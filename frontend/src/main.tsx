@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import './styles.css'
+import { Cover } from './cover'
 import { CartProvider, OfferActions, PurchasePage, money, useCart } from './cart'
 import { AccountControls, AuthPage } from './account'
 
@@ -39,13 +40,6 @@ function Header() {
         <Link className="cart-link" to="/cart">Cart <span>{cart.ids.length}</span></Link><AccountControls />
     </div><nav className="site-nav" aria-label="Main navigation"><Link to="/">Home</Link><Link to="/store">Browse games</Link></nav>
   </header>
-}
-
-function Cover({ product }: { product: Product }) {
-  const [failed, setFailed] = useState(false)
-  return <span className="cover" aria-hidden="true"><span>{product.title}</span>
-    {!failed && <img src={'/covers/' + product.id + '.jpg'} alt="" loading="lazy" onError={() => setFailed(true)} />}
-  </span>
 }
 
 function Grid({ products }: { products: Product[] }) {

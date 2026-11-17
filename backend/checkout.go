@@ -15,6 +15,7 @@ import (
 )
 
 type quoteItem struct {
+	ProductID string `db:"product_id" json:"productId"`
 	OfferID   int64  `db:"offer_id" json:"offerId"`
 	Title     string `db:"title" json:"title"`
 	Seller    string `db:"seller" json:"seller"`
@@ -48,7 +49,7 @@ func mountCheckout(r chi.Router, db *sqlx.DB, internal func(http.ResponseWriter,
 		var total int64
 		for _, id := range input.Offers {
 			item := quoteItem{OfferID: id, Title: "Unavailable offer"}
-			err := db.GetContext(r.Context(), &item, `SELECT o.id offer_id,p.title,s.name seller,o.price_cents price,
+			err := db.GetContext(r.Context(), &item, `SELECT o.id offer_id,p.id product_id,p.title,s.name seller,o.price_cents price,
                 EXISTS (SELECT 1 FROM inventory_keys k WHERE k.offer_id=o.id AND k.redeemed_at IS NULL) available
                 FROM offers o JOIN products p ON p.id=o.product_id JOIN sellers s ON s.id=o.seller_id WHERE o.id=$1`, id)
 			if err != nil && !errors.Is(err, sql.ErrNoRows) {

@@ -18,6 +18,7 @@ const offer = listing.items[0].bestOfferId
 assert.ok(Number.isInteger(offer))
 const { value: quote } = await post('cart/quote', { offers: [offer] }, 200)
 assert.equal(quote.items[0].offerId, offer)
+assert.equal(quote.items[0].productId, 'cyberpunk-2077')
 assert.equal(quote.items[0].available, true)
 assert.equal(quote.totalCents, listing.items[0].priceCents)
 assert.equal(await (await fetch(origin + '/covers/cyberpunk-2077.jpg')).headers.get('content-type'), 'image/jpeg')

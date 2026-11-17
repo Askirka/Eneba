@@ -1,3 +1,4 @@
+import { Cover } from './cover'
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -43,7 +44,7 @@ export function OfferActions({ id }: { id: number }) {
 
 export const money = (cents: number) => new Intl.NumberFormat('en', { style: 'currency', currency: 'EUR' }).format(cents / 100)
 
-type Item = { offerId: number; title: string; seller: string; priceCents: number; available: boolean }
+type Item = { offerId: number; productId: string; title: string; seller: string; priceCents: number; available: boolean }
 type Quote = { items: Item[]; totalCents: number }
 type Receipt = { id: number; totalCents: number; items: { title: string; seller: string; code: string }[] }
 
@@ -126,8 +127,12 @@ function PurchaseSummary({ ids, direct, checkout, returnTo }: { ids: number[]; d
       quote.isPending ? <p role="status">Checking offers…</p> :
       quote.isError ? <p role="alert">{quote.error.message} <button onClick={() => void quote.refetch()}>Retry</button></p> :
       data && <>
-        <ul className="purchase-lines">{data.items.map(item => <li key={item.offerId}>
-          <span><strong>{item.title}</strong>{item.seller && <small>{item.seller}</small>}</span>
+        <ul className="purchase-lines">{data.items.map(item => <li key={item.offerId} className="purchase-item">
+          <div className="purchase-product">
+            {item.productId ? <Link className="purchase-product-link" to={'/games/' + encodeURIComponent(item.productId)}>
+              <Cover key={item.productId} product={{ id: item.productId, title: item.title }} />
+              <span><strong>{item.title}</strong><small>{item.seller}</small></span></Link> : <strong>{item.title}</strong>}
+          </div>
           <strong>{item.available ? money(item.priceCents) : 'Unavailable'}</strong>
           {!direct && <button className="secondary" disabled={pending} onClick={() => cart.remove([item.offerId])} aria-label={'Remove ' + item.title}>Remove</button>}
         </li>)}</ul>

@@ -89,3 +89,13 @@ code { overflow-wrap: anywhere; }
   .account-controls { gap: .5rem; font-size: .82rem; }
   .card-details { padding: .55rem; }
 }
+.purchase-lines .purchase-item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .75rem 1rem; }
+.purchase-product { min-width: 0; }
+.purchase-product-link { display: grid; grid-template-columns: 3.75rem minmax(0, 1fr); align-items: center; gap: .75rem; text-decoration: none; }
+.purchase-product-link:hover strong { text-decoration: underline; }
+.purchase-product-link .cover { aspect-ratio: 2 / 3; border-radius: .35rem; }
+.purchase-product-link .cover span { display: none; }
+@media (max-width: 36rem) {
+  .purchase-lines .purchase-item { grid-template-columns: minmax(0, 1fr) auto; }
+  .purchase-item button { grid-column: 2; justify-self: end; padding: .4rem .55rem; }
+}
