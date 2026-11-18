@@ -39,7 +39,7 @@ Authentication POST requests require the same-origin header `X-Game-Market-Reque
 
 ## Cart and demo purchases
 
-Add a game from the catalog or select a seller on its product page. The catalog action selects the lowest-priced available offer. The cart stays in the browser and checkout requires an account. **Buy now** on a product checks out that offer directly. PostgreSQL saves successful orders and allocates one synthetic key per selected offer in the same transaction. The checkout can simulate a declined payment, and the API checks the quoted total again before committing.
+Add a game from the catalog or select a seller on its product page. The catalog action selects the lowest-priced available offer. Offers from different sellers share one product page when their title, platform, and region match. The Best price section shows the lowest listed price and indicates when that offer is sold out. The cart stays in the browser and checkout requires an account. **Buy now** on a product checks out that offer directly. PostgreSQL saves successful orders and allocates one synthetic key per selected offer in the same transaction. The checkout can simulate a declined payment, and the API checks the quoted total again before committing.
 
 Product cover images come from the respective publishers' Steam library assets and are served locally. All purchases are simulated and use demonstration keys.
 
@@ -50,7 +50,7 @@ Product cover images come from the respective publishers' Steam library assets a
 
 ## Personal account
 
-Open **My account** after signing in. Update the display name and upload or remove a JPEG or PNG profile picture. **Reset password** changes the password using the current password and revokes other sessions. Purchase history includes order details and demo keys and is accessible only to each buyer. **My items** lists the signed-in member’s published items. Creating a listing publishes it in the catalog with one synthetic key.
+Open **My account** after signing in. Update the display name and upload or remove a JPEG or PNG profile picture. **Reset password** changes the password using the current password and revokes other sessions. Purchase history includes order details and demo keys and is accessible only to each buyer. **My items** lists the signed-in member’s published items. Creating a listing publishes it in the catalog with the selected quantity of synthetic keys. Use **Edit price** in My items to change the base price and apply or remove a percentage discount. The checkout uses the discounted price. Use **Restock** in My items to add demo keys to an existing offer, up to 100 available keys. Seller names link to public storefronts showing their own offers.
 
 Run `node scripts/profile-smoke.mjs` against the running app to check account settings, order ownership, and authenticated listings. This test creates demo accounts, a listing, and an order.
 

@@ -2,11 +2,12 @@ import { FormEvent, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { money } from './cart'
+import { OfferPrice } from './price'
 
 type Profile = { id: number; name: string; email: string; hasAvatar: boolean }
 type Order = { id: number; totalCents: number; createdAt: string }
 type Receipt = Order & { items: { title: string; seller: string; priceCents: number; code: string }[] }
-type Listing = { id: string; title: string; priceCents: number; stock: number }
+type Listing = { id: string; title: string; priceCents: number; originalPriceCents: number; discountPercent: number; stock: number }
 
 class AccountError extends Error {
   constructor(readonly status: number, message: string) { super(message) }
@@ -163,7 +164,7 @@ function Listings({ userId }: { userId: number }) {
     mutationFn: (itemId: string) => request<void>('/items/' + encodeURIComponent(itemId), undefined, undefined, 'DELETE'),
     onSuccess: (_, itemId) => {
       setCreated(item => item?.id === itemId ? undefined : item)
-      for (const key of [['account-items', userId], ['product', itemId], ['ratings', itemId], ['products'], ['home'], ['quote']]) {
+      for (const key of [['account-items', userId], ['product', itemId], ['ratings', itemId], ['products'], ['home'], ['quote'], ['seller']]) {
         void client.invalidateQueries({ queryKey: key })
       }
     },
@@ -173,23 +174,27 @@ function Listings({ userId }: { userId: number }) {
     {query.isError && <p role="alert">{query.error.message}</p>}
     {query.data?.length === 0 && <p>You haven’t published any items yet.</p>}
     <ul className="purchase-lines">{query.data?.map(item => <li key={item.id}>
-      <Link to={'/games/' + item.id}>{item.title}</Link><span>{item.stock ? 'Available' : 'Sold out'}</span><strong>{money(item.priceCents)}</strong>
+      <Link to={'/games/' + item.id}>{item.title}</Link><span>{item.stock ? item.stock + ' available' : 'Not available right now'}</span><OfferPrice offer={item} />
+      <EditListingPrice item={item} userId={userId} />
+      <RestockItem item={item} userId={userId} />
       <button className="secondary" disabled={remove.isPending} onClick={() => {
-        if (window.confirm('Delete ' + item.title + ' from the catalog?')) remove.mutate(item.id)
+        if (window.confirm('Remove your offer for ' + item.title + '?')) remove.mutate(item.id)
       }} aria-label={'Delete ' + item.title}>Delete</button>
     </li>)}</ul>
     {remove.isSuccess && <p role="status">Item deleted.</p>}
     {remove.isError && <p role="alert">{remove.error.message}</p>}
     <h3>Create item</h3>
-    <p>Publish a game with one demonstration key.</p>
+    <p>Set how many demo keys you want to make available.</p>
     <AccountForm reset action={async data => {
       const item = await request<Listing>('/items', undefined, {
         title: data.get('title'), description: data.get('description'), platform: data.get('platform'), region: data.get('region'),
-        priceCents: Math.round(Number(data.get('price')) * 100),
+        priceCents: Math.round(Number(data.get('price')) * 100), quantity: Number(data.get('quantity')),
       })
       setCreated(item)
       await client.invalidateQueries({ queryKey: ['account-items', userId] })
-      void client.invalidateQueries({ queryKey: ['products'] })
+      for (const key of [['products'], ['product', item.id], ['home'], ['quote'], ['seller']]) {
+        void client.invalidateQueries({ queryKey: key })
+      }
       return 'Item published.'
     }}>
       <label>Game title<input name="title" maxLength={100} required /></label>
@@ -197,8 +202,53 @@ function Listings({ userId }: { userId: number }) {
       <label>Platform<select name="platform"><option>Steam</option><option>Xbox</option><option>GOG</option></select></label>
       <label>Region<select name="region"><option>Global</option><option>Europe</option></select></label>
       <label>Price in EUR<input name="price" type="number" min=".01" max="10000" step=".01" required /></label>
+      <label>Quantity<input name="quantity" type="number" min="0" max="100" step="1" defaultValue="1" required /></label>
       <button type="submit">Publish item</button>
     </AccountForm>
     {created && <Link to={'/games/' + created.id}>View {created.title}</Link>}
   </section>
+}
+
+function RestockItem({ item, userId }: { item: Listing; userId: number }) {
+  const client = useQueryClient()
+  const [open, setOpen] = useState(false)
+  return <div>
+    <button className="secondary" disabled={item.stock >= 100} aria-expanded={open}
+      aria-label={'Restock ' + item.title} onClick={() => setOpen(!open)}>Restock</button>
+    {open && <AccountForm reset action={async data => {
+      await request('/items/' + encodeURIComponent(item.id) + '/restock', undefined, { quantity: Number(data.get('quantity')) })
+      for (const key of [['account-items', userId], ['product', item.id], ['products'], ['home'], ['quote'], ['seller']]) {
+        void client.invalidateQueries({ queryKey: key })
+      }
+      return 'Stock updated.'
+    }}>
+      <label>Quantity to add<input name="quantity" type="number" min="1" max={Math.max(1, 100 - item.stock)} step="1" defaultValue="1" required /></label>
+      <button type="submit" disabled={item.stock >= 100}>Add stock</button>
+    </AccountForm>}
+  </div>
+}
+
+function EditListingPrice({ item, userId }: { item: Listing; userId: number }) {
+  const client = useQueryClient()
+  const [open, setOpen] = useState(false)
+  return <div>
+    <button className="secondary" aria-expanded={open} aria-label={'Edit price for ' + item.title}
+      onClick={() => setOpen(!open)}>Edit price</button>
+    {open && <AccountForm action={async data => {
+      await request('/items/' + encodeURIComponent(item.id) + '/price', undefined, {
+        priceCents: Math.round(Number(data.get('price')) * 100),
+        discountPercent: Number(data.get('discount')),
+      })
+      for (const key of [['account-items', userId], ['product', item.id], ['products'], ['home'], ['quote'], ['seller']]) {
+        void client.invalidateQueries({ queryKey: key })
+      }
+      return 'Price updated.'
+    }}>
+      <label>Base price in EUR<input name="price" type="number" min=".01" max="10000" step=".01"
+        defaultValue={(item.originalPriceCents / 100).toFixed(2)} required /></label>
+      <label>Discount (%)<input name="discount" type="number" min="0" max="99" step="1"
+        defaultValue={item.discountPercent} required /></label>
+      <button type="submit">Save price</button>
+    </AccountForm>}
+  </div>
 }

@@ -25,8 +25,10 @@ assert.equal(new Set(products.map(game => game.id)).size, 4)
 assert.ok(products.every(game => game.platform === 'Steam' && game.region === 'Europe'))
 assert.deepEqual(products.map(game => game.priceCents), products.map(game => game.priceCents).sort((a, b) => a - b))
 const detail = await json('/api/products/cyberpunk-2077')
-assert.equal(detail.offers.length, 3)
-assert.ok(detail.offers.every(offer => offer.stock > 0 && !('code' in offer)))
+for (const seller of ['Pixel Harbor', 'Cartridge Club', 'Key Orchard']) {
+  assert.ok(detail.offers.some(offer => offer.seller === seller), seller)
+}
+assert.ok(detail.offers.every(offer => Number.isInteger(offer.stock) && offer.stock >= 0 && !('code' in offer)))
 await json('/api/products/missing', 404)
 await json('/api/products?limit=100', 400)
 assert.match(await (await fetch(origin + '/games/hades')).text(), /<div id="root">/)

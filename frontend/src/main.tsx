@@ -5,13 +5,14 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import './styles.css'
 import { Cover } from './cover'
 import { ProductRating } from './rating'
+import { OfferPrice } from './price'
 import { ProductComments } from './comments'
 import { OrderPage, ProfilePage } from './profile'
-import { CartProvider, OfferActions, PurchasePage, money, useCart } from './cart'
+import { CartProvider, OfferActions, PurchasePage, useCart } from './cart'
 import { AccountControls, AuthPage } from './account'
 
-type Product = { id: string; title: string; platform: string; region: string; priceCents: number | null; bestOfferId: number | null; description: string; activation: string }
-type Offer = { id: number; seller: string; rating: number; priceCents: number; stock: number }
+type Product = { id: string; title: string; platform: string; region: string; priceCents: number | null; originalPriceCents: number | null; discountPercent: number; bestOfferId: number | null; description: string; activation: string }
+type Offer = { id: number; sellerId: number; seller: string; rating: number; priceCents: number; originalPriceCents: number; discountPercent: number; stock: number }
 type Block = { type: string; title: string; copy: string; label: string; url: string; products: Product[] | null }
 type Page = { items: Product[]; page: number; limit: number; total: number }
 
@@ -55,15 +56,15 @@ function Grid({ products }: { products: Product[] }) {
       <div className="card-details">
         <Link className="card-title" to={path}>{product.title}</Link>
         <span className="meta">{product.region}</span>
-        <div className="card-price">{product.priceCents === null ? 'Unavailable' : <><small>From</small>{money(product.priceCents)}</>}</div>
+        <div className="card-price">{product.priceCents === null ? 'Not available right now' : <><small>From</small><OfferPrice offer={product} /></>}</div>
         {product.bestOfferId !== null && <OfferActions id={product.bestOfferId} />}
       </div>
     </article>
   })}</div>
 }
-function Feedback({ pending, error, retry, children }: { pending: boolean; error: Error | null; retry: () => void; children: ReactNode }) {
+function Feedback({ pending, error, retry, children, missing = 'Game not found' }: { pending: boolean; error: Error | null; retry: () => void; children: ReactNode; missing?: string }) {
   if (pending) return <p role="status">Loading…</p>
-  if (error instanceof RequestError && error.status === 404) return <h1>Game not found</h1>
+  if (error instanceof RequestError && error.status === 404) return <h1>{missing}</h1>
   if (error) return <p role="alert">Unable to load this page. <button onClick={retry}>Retry</button></p>
   return children
 }
@@ -147,15 +148,47 @@ function Game() {
   const id = useParams().id!
   const query = useQuery({ queryKey: ['product', id], queryFn: ({ signal }) => get<{ product: Product; offers: Offer[] }>('/products/' + encodeURIComponent(id), signal) })
   const product = query.data?.product
+  const best = query.data?.offers[0]
   return <Feedback pending={query.isPending} error={query.error} retry={() => void query.refetch()}>
     {product && <><Link to="/store">Back to store</Link><div className="game-intro"><Cover key={product.id} product={product} /><div><h1>{product.title}</h1>
       <p className="meta">{product.platform} · {product.region}</p>
       <p>{product.description}</p><p>{product.activation}</p></div></div>
-      <ProductRating key={product.id} productId={product.id} /><h2>Seller offers</h2>
+      <ProductRating key={product.id} productId={product.id} />
+      {best && <section className="best-offer" aria-label="Best seller offer">
+        <div><h2>Best price</h2><p><Link to={'/sellers/' + best.sellerId}>{best.seller}</Link> · {best.stock > 0 ? best.stock + ' available' : 'Not available right now'}</p></div>
+        <OfferPrice offer={best} />{best.stock > 0 && <OfferActions id={best.id} />}
+      </section>}
+      <h2>Seller offers</h2>
       {!query.data?.offers.length && <p>No offers are available.</p>}
       <ul className="offers">{query.data?.offers.map(offer => <li key={offer.id}>
-        <strong>{offer.seller}</strong><span>{offer.rating.toFixed(2)} / 5</span><span>{offer.stock ? offer.stock + ' available' : 'Sold out'}</span><strong>{money(offer.priceCents)}</strong>{offer.stock > 0 && <OfferActions id={offer.id} />}
+        <strong><Link to={'/sellers/' + offer.sellerId}>{offer.seller}</Link></strong><span>{offer.rating ? offer.rating.toFixed(2) + ' / 5' : 'New seller'}</span><span>{offer.stock ? offer.stock + ' available' : 'Not available right now'}</span><OfferPrice offer={offer} />{offer.stock > 0 && <OfferActions id={offer.id} />}
       </li>)}</ul><ProductComments key={product.id} productId={product.id} />
+    </>}
+  </Feedback>
+}
+
+function SellerPage() {
+  const { id } = useParams()
+  const [params, setParams] = useSearchParams()
+  const page = params.get('page') ?? '1'
+  const query = useQuery({
+    queryKey: ['seller', id, page],
+    queryFn: ({ signal }) => get<{ seller: { name: string; rating: number }; items: Product[]; page: number; next: boolean }>(
+      '/sellers/' + encodeURIComponent(id!) + '?' + new URLSearchParams({ page }), signal),
+  })
+  const data = query.data
+  return <Feedback pending={query.isPending} error={query.error} retry={() => void query.refetch()} missing="Seller not found">
+    {data && <>
+      <p className="breadcrumb"><Link to="/store">Store</Link> / Sellers</p>
+      <h1>{data.seller.name}</h1>
+      <p>{data.seller.rating ? data.seller.rating.toFixed(2) + ' / 5' : 'New seller'}</p>
+      <h2>Items from this seller</h2>
+      {data.items.length ? <Grid products={data.items} /> : <p>This seller has no listings on this page.</p>}
+      {(data.page > 1 || data.next) && <nav className="pages" aria-label="Seller pages">
+        <button disabled={data.page === 1} onClick={() => setParams({ page: String(data.page - 1) })}>Previous</button>
+        <span>Page {data.page}</span>
+        <button disabled={!data.next} onClick={() => setParams({ page: String(data.page + 1) })}>Next</button>
+      </nav>}
     </>}
   </Feedback>
 }
@@ -163,6 +196,6 @@ function Game() {
 const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 createRoot(document.getElementById('root')!).render(
   <QueryClientProvider client={client}><BrowserRouter><CartProvider><Header /><main>
-    <Routes><Route path="/" element={<Home />} /><Route path="/store" element={<Store />} /><Route path="/games/:id" element={<Game />} /><Route path="/account" element={<ProfilePage />} /><Route path="/account/orders/:id" element={<OrderPage />} /><Route path="/cart" element={<PurchasePage />} /><Route path="/checkout" element={<PurchasePage checkout />} /><Route path="/login" element={<AuthPage key="login" mode="login" />} /><Route path="/register" element={<AuthPage key="register" mode="register" />} /><Route path="*" element={<h1>Page not found</h1>} /></Routes>
+    <Routes><Route path="/" element={<Home />} /><Route path="/store" element={<Store />} /><Route path="/games/:id" element={<Game />} /><Route path="/account" element={<ProfilePage />} /><Route path="/account/orders/:id" element={<OrderPage />} /><Route path="/sellers/:id" element={<SellerPage />} /><Route path="/cart" element={<PurchasePage />} /><Route path="/checkout" element={<PurchasePage checkout />} /><Route path="/login" element={<AuthPage key="login" mode="login" />} /><Route path="/register" element={<AuthPage key="register" mode="register" />} /><Route path="*" element={<h1>Page not found</h1>} /></Routes>
   </main><footer>Game Market · Educational demo</footer></CartProvider></BrowserRouter></QueryClientProvider>
 )

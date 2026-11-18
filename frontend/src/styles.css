@@ -118,3 +118,12 @@ code { overflow-wrap: anywhere; }
 .comment-list li { padding: .85rem 0; border-top: 1px solid #795aaa; overflow-wrap: anywhere; }
 .comment-list li p { white-space: pre-wrap; margin: .5rem 0 0; }
 .comment-list time { color: #e2d5f5; font-size: .8rem; }
+.best-offer { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1.25rem; padding: 1rem; margin-top: 1.25rem; border: 1px solid #ffcf80; border-radius: .75rem; background: #221137; }
+.best-offer div:first-child { flex: 1 1 auto; }
+.best-offer h2, .best-offer p { margin: .2rem 0; }
+.best-offer > strong { font-size: 1.4rem; color: #ffcf80; }
+.purchase-product .cart-seller { margin-left: 4.5rem; }
+.offer-price { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: .25rem .5rem; }
+.offer-price del { color: #e1d3f2; font-size: .8rem; font-weight: 500; }
+.discount-tag { color: #a6edd8; font-size: .8rem; font-weight: 750; }
+.best-offer > .offer-price { font-size: 1.4rem; color: #ffcf80; }

@@ -12,9 +12,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 type quoteItem struct {
+	SellerID  int64  `db:"seller_id" json:"sellerId"`
 	ProductID string `db:"product_id" json:"productId"`
 	OfferID   int64  `db:"offer_id" json:"offerId"`
 	Title     string `db:"title" json:"title"`
@@ -49,9 +51,9 @@ func mountCheckout(r chi.Router, db *sqlx.DB, internal func(http.ResponseWriter,
 		var total int64
 		for _, id := range input.Offers {
 			item := quoteItem{OfferID: id, Title: "Unavailable offer"}
-			err := db.GetContext(r.Context(), &item, `SELECT o.id offer_id,p.id product_id,p.title,s.name seller,o.price_cents price,
+			err := db.GetContext(r.Context(), &item, `SELECT o.id offer_id,p.id product_id,p.title,s.id seller_id,s.name seller,o.effective_price_cents price,
                 EXISTS (SELECT 1 FROM inventory_keys k WHERE k.offer_id=o.id AND k.redeemed_at IS NULL) available
-                FROM offers o JOIN products p ON p.id=o.product_id JOIN sellers s ON s.id=o.seller_id WHERE o.id=$1 AND p.deleted_at IS NULL`, id)
+                FROM offers o JOIN products p ON p.id=o.product_id JOIN sellers s ON s.id=o.seller_id WHERE o.id=$1 AND p.deleted_at IS NULL AND o.deleted_at IS NULL`, id)
 			if err != nil && !errors.Is(err, sql.ErrNoRows) {
 				internal(w, r, err)
 				return
@@ -119,6 +121,14 @@ func mountCheckout(r chi.Router, db *sqlx.DB, internal func(http.ResponseWriter,
 			fail(w, 402, "Demo payment declined.")
 			return
 		}
+		// Lock products in a consistent order before locking their offers or keys.
+		var products []string
+		if err := tx.SelectContext(ctx, &products, `SELECT p.id FROM products p
+            WHERE p.id IN (SELECT product_id FROM offers WHERE id=ANY($1))
+            ORDER BY p.id FOR SHARE`, pq.Array(input.Offers)); err != nil {
+			internal(w, r, err)
+			return
+		}
 		type allocation struct {
 			ID     int64  `db:"id"`
 			Title  string `db:"title"`
@@ -129,10 +139,10 @@ func mountCheckout(r chi.Router, db *sqlx.DB, internal func(http.ResponseWriter,
 		var total int64
 		for _, id := range input.Offers {
 			var key allocation
-			err := tx.GetContext(ctx, &key, `SELECT k.id,p.title,s.name seller,o.price_cents
+			err := tx.GetContext(ctx, &key, `SELECT k.id,p.title,s.name seller,o.effective_price_cents AS price_cents
                 FROM inventory_keys k JOIN offers o ON o.id=k.offer_id
                 JOIN products p ON p.id=o.product_id JOIN sellers s ON s.id=o.seller_id
-                WHERE k.offer_id=$1 AND k.redeemed_at IS NULL AND p.deleted_at IS NULL ORDER BY k.id LIMIT 1 FOR UPDATE OF k,o,p`, id)
+                WHERE k.offer_id=$1 AND k.redeemed_at IS NULL AND p.deleted_at IS NULL AND o.deleted_at IS NULL ORDER BY k.id LIMIT 1 FOR UPDATE OF k,o`, id)
 			if errors.Is(err, sql.ErrNoRows) {
 				fail(w, 409, "An offer is sold out. Refresh your cart.")
 				return

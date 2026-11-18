@@ -65,29 +65,41 @@ func (a profileAPI) rate(w http.ResponseWriter, r *http.Request, user int64) {
 
 func (a profileAPI) deleteListing(w http.ResponseWriter, r *http.Request, user int64) {
 	id := chi.URLParam(r, "id")
-	result, err := a.db.ExecContext(r.Context(), `UPDATE products SET deleted_at=now()
-        WHERE id=$1 AND owner_id=$2 AND deleted_at IS NULL`, id, user)
+	ctx := r.Context()
+	tx, err := a.db.BeginTxx(ctx, nil)
 	if err != nil {
 		a.internal(w, r, err)
 		return
 	}
-	count, err := result.RowsAffected()
+	defer tx.Rollback()
+	var product string
+	err = tx.GetContext(ctx, &product, "SELECT id FROM products WHERE id=$1 AND deleted_at IS NULL FOR UPDATE", id)
+	if errors.Is(err, sql.ErrNoRows) {
+		fail(w, 404, "Item not found.")
+		return
+	}
 	if err != nil {
 		a.internal(w, r, err)
 		return
 	}
-	if count == 0 {
-		var owner sql.NullInt64
-		err = a.db.GetContext(r.Context(), &owner, "SELECT owner_id FROM products WHERE id=$1 AND deleted_at IS NULL", id)
-		if errors.Is(err, sql.ErrNoRows) {
-			fail(w, 404, "Item not found.")
-			return
-		}
-		if err != nil {
-			a.internal(w, r, err)
-			return
-		}
-		fail(w, 403, "Only the creator can delete this item.")
+	var removed int64
+	err = tx.GetContext(ctx, &removed, `UPDATE offers o SET deleted_at=now() FROM sellers s
+ WHERE o.seller_id=s.id AND s.owner_id=$1 AND o.product_id=$2 AND o.deleted_at IS NULL RETURNING o.id`, user, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		fail(w, 403, "Only the seller can remove this offer.")
+		return
+	}
+	if err != nil {
+		a.internal(w, r, err)
+		return
+	}
+	if _, err = tx.ExecContext(ctx, `UPDATE products SET deleted_at=now() WHERE id=$1
+ AND NOT EXISTS (SELECT 1 FROM offers WHERE product_id=$1 AND deleted_at IS NULL)`, id); err != nil {
+		a.internal(w, r, err)
+		return
+	}
+	if err = tx.Commit(); err != nil {
+		a.internal(w, r, err)
 		return
 	}
 	w.WriteHeader(204)

@@ -52,6 +52,8 @@ func mountProfile(r chi.Router, db *sqlx.DB, internal func(http.ResponseWriter, 
 		r.Get("/items", api.authenticated(api.listings))
 		r.Post("/items", api.authenticated(api.createListing))
 		r.Delete("/items/{id}", api.authenticated(api.deleteListing))
+		r.Post("/items/{id}/restock", api.authenticated(api.restockListing))
+		r.Post("/items/{id}/price", api.authenticated(api.updateListingPrice))
 	})
 }
 
@@ -280,18 +282,20 @@ func (a profileAPI) order(w http.ResponseWriter, r *http.Request, id int64) {
 }
 
 type listing struct {
-	ID    string `db:"id" json:"id"`
-	Title string `db:"title" json:"title"`
-	Price int    `db:"price_cents" json:"priceCents"`
-	Stock int    `db:"stock" json:"stock"`
+	OriginalPrice int    `db:"original_price_cents" json:"originalPriceCents"`
+	Discount      int    `db:"discount_percent" json:"discountPercent"`
+	ID            string `db:"id" json:"id"`
+	Title         string `db:"title" json:"title"`
+	Price         int    `db:"price_cents" json:"priceCents"`
+	Stock         int    `db:"stock" json:"stock"`
 }
 
 func (a profileAPI) listings(w http.ResponseWriter, r *http.Request, id int64) {
 	items := []listing{}
-	err := a.db.SelectContext(r.Context(), &items, `SELECT p.id,p.title,o.price_cents,count(k.id) stock
-        FROM products p JOIN sellers s ON s.owner_id=p.owner_id JOIN offers o ON o.product_id=p.id AND o.seller_id=s.id
+	err := a.db.SelectContext(r.Context(), &items, `SELECT p.id,p.title,o.effective_price_cents AS price_cents,o.price_cents AS original_price_cents,o.discount_percent,count(k.id) stock
+        FROM offers o JOIN products p ON p.id=o.product_id JOIN sellers s ON s.id=o.seller_id
         LEFT JOIN inventory_keys k ON k.offer_id=o.id AND k.redeemed_at IS NULL
-        WHERE p.owner_id=$1 AND p.deleted_at IS NULL GROUP BY p.id,o.id ORDER BY p.title,p.id`, id)
+        WHERE s.owner_id=$1 AND p.deleted_at IS NULL AND o.deleted_at IS NULL GROUP BY p.id,o.id ORDER BY p.title,p.id`, id)
 	if err != nil {
 		a.internal(w, r, err)
 		return
@@ -303,8 +307,17 @@ func (a profileAPI) createListing(w http.ResponseWriter, r *http.Request, id int
 	var input struct {
 		Title, Description, Platform, Region string
 		PriceCents                           int
+		Quantity                             *int
 	}
 	if !readProfileJSON(w, r, 8192, &input) {
+		return
+	}
+	quantity := 1
+	if input.Quantity != nil {
+		quantity = *input.Quantity
+	}
+	if quantity < 0 || quantity > 100 {
+		fail(w, 400, "Enter a quantity from 0 to 100.")
 		return
 	}
 	input.Title = strings.TrimSpace(input.Title)
@@ -322,6 +335,10 @@ func (a profileAPI) createListing(w http.ResponseWriter, r *http.Request, id int
 		return
 	}
 	productID := "listing-" + hex.EncodeToString(suffix[:])
+	var product struct {
+		ID    string `db:"id"`
+		Title string `db:"title"`
+	}
 	ctx := r.Context()
 	tx, err := a.db.BeginTxx(ctx, nil)
 	if err != nil {
@@ -329,8 +346,10 @@ func (a profileAPI) createListing(w http.ResponseWriter, r *http.Request, id int
 		return
 	}
 	defer tx.Rollback()
-	if _, err = tx.ExecContext(ctx, `INSERT INTO products(id,title,platform,region,description,activation,owner_id)
-        VALUES($1,$2,$3,$4,$5,'This listing issues a demonstration key.',$6)`, productID, input.Title, input.Platform, input.Region, input.Description, id); err != nil {
+	if err = tx.GetContext(ctx, &product, `INSERT INTO products(id,title,platform,region,description,activation,owner_id)
+        VALUES($1,$2,$3,$4,$5,'This listing issues a demonstration key.',$6)
+ ON CONFLICT ((lower(btrim(title))),platform,region) WHERE deleted_at IS NULL
+ DO UPDATE SET title=products.title RETURNING id,title`, productID, input.Title, input.Platform, input.Region, input.Description, id); err != nil {
 		a.internal(w, r, err)
 		return
 	}
@@ -340,11 +359,15 @@ func (a profileAPI) createListing(w http.ResponseWriter, r *http.Request, id int
 		a.internal(w, r, err)
 		return
 	}
-	if err = tx.GetContext(ctx, &offer, "INSERT INTO offers(product_id,seller_id,price_cents) VALUES($1,$2,$3) RETURNING id", productID, seller, input.PriceCents); err != nil {
+	if err = tx.GetContext(ctx, &offer, "INSERT INTO offers(product_id,seller_id,price_cents) VALUES($1,$2,$3) ON CONFLICT (product_id,seller_id) WHERE deleted_at IS NULL DO NOTHING RETURNING id", product.ID, seller, input.PriceCents); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			fail(w, 409, "You already have an offer for this game.")
+			return
+		}
 		a.internal(w, r, err)
 		return
 	}
-	if _, err = tx.ExecContext(ctx, "INSERT INTO inventory_keys(offer_id,code) VALUES($1,$2)", offer, "DEMO-LISTING-"+hex.EncodeToString(suffix[:])); err != nil {
+	if err = addListingKeys(ctx, tx, offer, suffix, quantity); err != nil {
 		a.internal(w, r, err)
 		return
 	}
@@ -352,5 +375,5 @@ func (a profileAPI) createListing(w http.ResponseWriter, r *http.Request, id int
 		a.internal(w, r, err)
 		return
 	}
-	reply(w, 201, listing{ID: productID, Title: input.Title, Price: input.PriceCents, Stock: 1})
+	reply(w, 201, listing{ID: product.ID, Title: product.Title, Price: input.PriceCents, OriginalPrice: input.PriceCents, Stock: quantity})
 }

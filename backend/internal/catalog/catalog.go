@@ -6,22 +6,27 @@ import (
 )
 
 type Product struct {
-	BestOfferID *int64 `db:"offer_id" json:"bestOfferId"`
-	ID          string `db:"id" json:"id"`
-	Title       string `db:"title" json:"title"`
-	Platform    string `db:"platform" json:"platform"`
-	Region      string `db:"region" json:"region"`
-	Price       *int   `db:"price_cents" json:"priceCents"`
-	Description string `db:"description" json:"description"`
-	Activation  string `db:"activation" json:"activation"`
+	OriginalPrice *int   `db:"original_price_cents" json:"originalPriceCents"`
+	Discount      int    `db:"discount_percent" json:"discountPercent"`
+	BestOfferID   *int64 `db:"offer_id" json:"bestOfferId"`
+	ID            string `db:"id" json:"id"`
+	Title         string `db:"title" json:"title"`
+	Platform      string `db:"platform" json:"platform"`
+	Region        string `db:"region" json:"region"`
+	Price         *int   `db:"price_cents" json:"priceCents"`
+	Description   string `db:"description" json:"description"`
+	Activation    string `db:"activation" json:"activation"`
 }
 
 type Offer struct {
-	ID     int64   `db:"id" json:"id"`
-	Seller string  `db:"seller" json:"seller"`
-	Rating float64 `db:"rating" json:"rating"`
-	Price  int     `db:"price_cents" json:"priceCents"`
-	Stock  int     `db:"stock" json:"stock"`
+	OriginalPrice int     `db:"original_price_cents" json:"originalPriceCents"`
+	Discount      int     `db:"discount_percent" json:"discountPercent"`
+	SellerID      int64   `db:"seller_id" json:"sellerId"`
+	ID            int64   `db:"id" json:"id"`
+	Seller        string  `db:"seller" json:"seller"`
+	Rating        float64 `db:"rating" json:"rating"`
+	Price         int     `db:"price_cents" json:"priceCents"`
+	Stock         int     `db:"stock" json:"stock"`
 }
 
 type Block struct {
@@ -40,13 +45,13 @@ type Filter struct {
 
 type Repository struct{ DB *sqlx.DB }
 
-const productQuery = `SELECT p.id, p.title, p.platform, p.region, p.description, p.activation, best.price_cents, best.offer_id FROM products p
+const productQuery = `SELECT p.id, p.title, p.platform, p.region, p.description, p.activation, best.price_cents, best.original_price_cents, COALESCE(best.discount_percent,0) AS discount_percent, best.offer_id FROM products p
 LEFT JOIN LATERAL (
-    SELECT o.price_cents, o.id AS offer_id
-    FROM offers o WHERE o.product_id = p.id AND EXISTS (
+    SELECT o.effective_price_cents AS price_cents,o.price_cents AS original_price_cents,o.discount_percent,o.id AS offer_id
+    FROM offers o WHERE o.product_id = p.id AND o.deleted_at IS NULL AND EXISTS (
         SELECT 1 FROM inventory_keys k WHERE k.offer_id = o.id AND k.redeemed_at IS NULL
     )
-ORDER BY o.price_cents, o.id LIMIT 1
+ORDER BY o.effective_price_cents, o.id LIMIT 1
 ) best ON true`
 
 const filterQuery = ` WHERE p.deleted_at IS NULL AND
@@ -80,10 +85,10 @@ func (r Repository) Detail(ctx context.Context, id string) (Product, []Offer, er
 		return product, nil, err
 	}
 	offers := []Offer{}
-	err := r.DB.SelectContext(ctx, &offers, `SELECT o.id,s.name seller,s.rating,o.price_cents,count(k.id) stock
+	err := r.DB.SelectContext(ctx, &offers, `SELECT o.id,s.id seller_id,s.name seller,s.rating,o.effective_price_cents AS price_cents,o.price_cents AS original_price_cents,o.discount_percent,count(k.id) stock
  FROM offers o JOIN sellers s ON s.id=o.seller_id
  LEFT JOIN inventory_keys k ON k.offer_id=o.id AND k.redeemed_at IS NULL
- WHERE o.product_id=$1 GROUP BY o.id,s.id ORDER BY o.price_cents,o.id`, id)
+ WHERE o.product_id=$1 AND o.deleted_at IS NULL GROUP BY o.id,s.id ORDER BY o.effective_price_cents,(count(k.id)>0) DESC,o.id`, id)
 	return product, offers, err
 }
 

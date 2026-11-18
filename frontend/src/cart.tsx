@@ -44,7 +44,7 @@ export function OfferActions({ id }: { id: number }) {
 
 export const money = (cents: number) => new Intl.NumberFormat('en', { style: 'currency', currency: 'EUR' }).format(cents / 100)
 
-type Item = { offerId: number; productId: string; title: string; seller: string; priceCents: number; available: boolean }
+type Item = { offerId: number; productId: string; title: string; seller: string; sellerId: number; priceCents: number; available: boolean }
 type Quote = { items: Item[]; totalCents: number }
 type Receipt = { id: number; totalCents: number; items: { title: string; seller: string; code: string }[] }
 
@@ -109,7 +109,7 @@ function PurchaseSummary({ ids, direct, checkout, returnTo }: { ids: number[]; d
       setAttempt({ signature, requestId })
       setReceipt(await post<Receipt>('checkout', { offers: ids, totalCents: data.totalCents, requestId, decline }))
       if (!direct) cart.remove(ids)
-      for (const key of ['home', 'products', 'product', 'quote']) void client.invalidateQueries({ queryKey: [key] })
+      for (const key of ['home', 'products', 'product', 'quote', 'seller']) void client.invalidateQueries({ queryKey: [key] })
     } catch (failure) {
       setError(failure instanceof Error ? failure : new Error('Unable to place your order.'))
       if (failure instanceof PurchaseError && failure.status === 409) void quote.refetch()
@@ -131,9 +131,10 @@ function PurchaseSummary({ ids, direct, checkout, returnTo }: { ids: number[]; d
           <div className="purchase-product">
             {item.productId ? <Link className="purchase-product-link" to={'/games/' + encodeURIComponent(item.productId)}>
               <Cover key={item.productId} product={{ id: item.productId, title: item.title }} />
-              <span><strong>{item.title}</strong><small>{item.seller}</small></span></Link> : <strong>{item.title}</strong>}
+              <strong>{item.title}</strong></Link> : <strong>{item.title}</strong>}
+            {item.sellerId > 0 && <small className="cart-seller"><Link to={'/sellers/' + item.sellerId}>{item.seller}</Link></small>}
           </div>
-          <strong>{item.available ? money(item.priceCents) : 'Unavailable'}</strong>
+          <strong>{item.available ? money(item.priceCents) : 'Not available right now'}</strong>
           {!direct && <button className="secondary" disabled={pending} onClick={() => cart.remove([item.offerId])} aria-label={'Remove ' + item.title}>Remove</button>}
         </li>)}</ul>
         <p className="purchase-total">Total <strong>{money(data.totalCents)}</strong></p>
