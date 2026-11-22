@@ -14,7 +14,9 @@ The Compose default password is for the local demo. Copy `.env.example` to `.env
 
 ## Deployment
 
-Live URL: _pending deployment_.
+Live URL: https://eneba-sable.vercel.app
+
+The free-tier Render backend may take about 50 seconds to wake up on the first request.
 
 1. Create a Free project on [Neon](https://neon.com/docs/connect/connect-from-any-app). Copy the direct connection URL from Connect. Set sslmode=verify-full and omit channel_binding because the lib/pq version used here does not accept that option. The database role needs to create tables and enable pg_trgm.
 2. On Render choose New > Blueprint and select this repository and branch. Enter the Neon URI as secret DATABASE_URL and enter your expected frontend origin for ALLOWED_ORIGINS. The Free Docker service inherits PORT and runs Goose migrations at startup. Confirm /healthz and /readyz over HTTPS.
