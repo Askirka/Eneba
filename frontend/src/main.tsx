@@ -7,6 +7,7 @@ import './styles.css'
 import { SearchBox } from './search-box'
 import { WishlistButton, WishlistLink, WishlistPage, WishlistProvider } from './wishlist'
 import { Cover } from './cover'
+import { Footer } from './footer'
 import { ProductRating } from './rating'
 import { OfferPrice } from './price'
 import { ProductComments } from './comments'
@@ -51,14 +52,6 @@ function Header() {
       <Link to="/store?platform=Epic">Epic</Link><Link to="/store?deals=1">Deals</Link>
     </nav>
   </header>
-}
-
-function Footer() {
-  return <footer className="site-footer">
-    <div><strong>Game Market</strong><p>Educational marketplace demo</p></div>
-    <nav aria-label="Footer store"><strong>Explore</strong><Link to="/store">Games</Link><Link to="/store?deals=1">Deals</Link></nav>
-    <nav aria-label="Footer account"><strong>Your account</strong><Link to="/account">My account</Link><Link to="/wishlist">Wishlist</Link><Link to="/cart">Cart</Link></nav>
-  </footer>
 }
 
 function Grid({ products }: { products: Product[] }) {
