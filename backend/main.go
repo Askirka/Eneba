@@ -51,7 +51,7 @@ func run(log *zap.Logger) error {
 
 	service := catalog.Service{Repository: catalog.Repository{DB: db}}
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID, middleware.Recoverer, middleware.Timeout(5*time.Second))
+	r.Use(middleware.RequestID, middleware.Recoverer, middleware.Timeout(5*time.Second), originPolicy(os.Getenv("ALLOWED_ORIGINS")))
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) { reply(w, 200, map[string]string{"status": "ok"}) })
 	r.Get("/readyz", func(w http.ResponseWriter, r *http.Request) {
 		if db.PingContext(r.Context()) != nil {

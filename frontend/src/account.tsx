@@ -1,3 +1,4 @@
+import { apiFetch } from './api-fetch'
 import { FormEvent, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -7,14 +8,14 @@ type Credentials = { email: string; password: string }
 const accountKey = ['account'] as const
 
 async function currentAccount(signal: AbortSignal): Promise<Account | null> {
-  const response = await fetch('/api/auth/me', { signal })
+  const response = await apiFetch('/api/auth/me', { signal })
   if (response.status === 401) return null
   if (!response.ok) throw new Error('Unable to check your account.')
   return response.json()
 }
 
 async function authPost<T>(action: string, credentials?: Credentials): Promise<T> {
-  const response = await fetch('/api/auth/' + action, {
+  const response = await apiFetch('/api/auth/' + action, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Game-Market-Request': '1' },
     body: credentials ? JSON.stringify(credentials) : undefined,

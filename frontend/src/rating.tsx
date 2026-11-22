@@ -1,3 +1,4 @@
+import { apiFetch } from './api-fetch'
 import { FormEvent, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
@@ -13,7 +14,7 @@ export function ProductRating({ productId }: { productId: string }) {
   const summary = useQuery({
     queryKey: key,
     queryFn: async ({ signal }) => {
-      const response = await fetch(path, { signal })
+      const response = await apiFetch(path, { signal })
       if (!response.ok) throw new Error('Could not load ratings.')
       return response.json() as Promise<Rating>
     },
@@ -21,7 +22,7 @@ export function ProductRating({ productId }: { productId: string }) {
 
   const save = useMutation({
     mutationFn: async (grade: number) => {
-      const response = await fetch(path, {
+      const response = await apiFetch(path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Game-Market-Request': '1' },
         body: JSON.stringify({ grade }),

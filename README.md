@@ -12,6 +12,18 @@ Open http://localhost:3000. The Go API listens on http://localhost:8080. On firs
 
 The Compose default password is for the local demo. Copy `.env.example` to `.env` to override it on first initialization. For standalone development, provide `DATABASE_URL` to the Go API and run `npm ci && npm run dev` in `frontend`.
 
+## Deployment
+
+Live URL: _pending deployment_.
+
+1. Create a Free project on [Neon](https://neon.com/docs/connect/connect-from-any-app). Copy the direct connection URL with TLS from Connect. The database role needs to create tables and enable pg_trgm.
+2. On Render choose New > Blueprint and select this repository and branch. Enter the Neon URI as secret DATABASE_URL and enter your expected frontend origin for ALLOWED_ORIGINS. The Free Docker service inherits PORT and runs Goose migrations at startup. Confirm /healthz and /readyz over HTTPS.
+3. Replace https://your-render-service.onrender.com in frontend/vercel.json with your Render service origin and push the config. On Vercel Hobby import the repository with root directory frontend, framework Vite, build command npm run build and output directory dist.
+4. Set ALLOWED_ORIGINS on Render to the actual Vercel production origin, without a trailing slash. Separate multiple trusted origins with commas. Keep SESSION_COOKIE_SECURE=true and store the Neon URI only in Render.
+5. On the Vercel URL confirm /api/products returns JSON, register a demo account, refresh, complete a demo purchase and open its order. Record the verified URL above.
+
+Vercel forwards /api before the SPA fallback so cookies stay on the frontend origin. Read requests retry temporary startup responses while showing loading. See [Render Free](https://render.com/docs/free) and [Vercel rewrites](https://vercel.com/docs/routing/rewrites). Set DB_PORT in a local .env file to override port 5433. Keep secrets outside Git.
+
 ## API
 
 | Request | Response |

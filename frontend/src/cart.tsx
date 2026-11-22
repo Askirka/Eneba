@@ -1,3 +1,4 @@
+import { apiFetch } from './api-fetch'
 import { Cover } from './cover'
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
@@ -53,7 +54,7 @@ class PurchaseError extends Error {
 }
 
 async function post<T>(path: string, body: object, signal?: AbortSignal): Promise<T> {
-  const response = await fetch('/api/' + path, {
+  const response = await apiFetch('/api/' + path, {
     method: 'POST', signal,
     headers: { 'Content-Type': 'application/json', 'X-Game-Market-Request': '1' },
     body: JSON.stringify(body),
@@ -89,7 +90,7 @@ function PurchaseSummary({ ids, direct, checkout, returnTo }: { ids: number[]; d
   const account = useQuery({
     queryKey: ['account'], enabled: checkout,
     queryFn: async ({ signal }) => {
-      const response = await fetch('/api/auth/me', { signal })
+      const response = await apiFetch('/api/auth/me', { signal })
       if (response.status === 401) return null
       if (!response.ok) throw new Error('Unable to check your account.')
       return response.json() as Promise<{ id: number; email: string }>

@@ -1,3 +1,4 @@
+import { apiFetch } from './api-fetch'
 import { FormEvent, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -14,7 +15,7 @@ class AccountError extends Error {
 }
 
 async function request<T>(path: string, signal?: AbortSignal, body?: object, method = body ? 'POST' : 'GET'): Promise<T> {
-  const response = await fetch('/api/account' + path, {
+  const response = await apiFetch('/api/account' + path, {
     method, signal,
     headers: method !== 'GET' ? { 'Content-Type': 'application/json', 'X-Game-Market-Request': '1' } : undefined,
     body: body ? JSON.stringify(body) : undefined,

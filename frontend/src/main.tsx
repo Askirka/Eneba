@@ -1,3 +1,4 @@
+import { apiFetch } from './api-fetch'
 import { FormEvent, ReactNode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -21,7 +22,7 @@ class RequestError extends Error {
 }
 
 async function get<T>(path: string, signal: AbortSignal): Promise<T> {
-  const response = await fetch('/api' + path, { signal })
+  const response = await apiFetch('/api' + path, { signal })
   if (!response.ok) throw new RequestError(response.status)
   return response.json()
 }

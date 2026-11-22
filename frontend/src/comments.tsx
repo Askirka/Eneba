@@ -1,3 +1,4 @@
+import { apiFetch } from './api-fetch'
 import { FormEvent, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
@@ -16,7 +17,7 @@ export function ProductComments({ productId }: { productId: string }) {
     queryKey: key,
     initialPageParam: 0,
     queryFn: async ({ signal, pageParam }) => {
-      const response = await fetch(path + (pageParam ? '?before=' + pageParam : ''), { signal })
+      const response = await apiFetch(path + (pageParam ? '?before=' + pageParam : ''), { signal })
       if (!response.ok) throw new Error('Could not load comments.')
       return response.json() as Promise<CommentPage>
     },
@@ -24,7 +25,7 @@ export function ProductComments({ productId }: { productId: string }) {
   })
   const post = useMutation({
     mutationFn: async (body: string) => {
-      const response = await fetch(path, {
+      const response = await apiFetch(path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Game-Market-Request': '1' },
         body: JSON.stringify({ body }),
