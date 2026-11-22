@@ -95,7 +95,7 @@ Stock is counted from unredeemed keys. Checkout locks the relevant offer and inv
 ## Verify
 
 - In `backend`, run `go test ./...` and `go vet ./...`.
-- In `frontend`, run `npm ci`, `npm run build`, `npx playwright install chromium`, and `npm run test:e2e` against the running stack.
+- In `frontend`, run `npm ci`, `npm run build`, `npx playwright install chromium`, and `npm run test:e2e` against the running stack. The responsive test writes 36 full-page screenshots to the ignored frontend/test-results/responsive directory.
 - For Go integration tests set `TEST_WEB_ORIGIN=http://localhost:8080` and `TEST_DATABASE_URL=postgres://games:games@localhost:5433/games?sslmode=disable` before running `go test ./... -count=1` in `backend`. These are local demo defaults.
 - With Compose running, execute `node scripts/smoke.mjs` and `node scripts/auth-smoke.mjs` from the project root. Run `node scripts/checkout-smoke.mjs` to verify checkout with seeded inventory. The auth test registers a unique `@example.test` account and revokes its session when finished.
 
