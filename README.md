@@ -16,7 +16,7 @@ The Compose default password is for the local demo. Copy `.env.example` to `.env
 
 Live URL: _pending deployment_.
 
-1. Create a Free project on [Neon](https://neon.com/docs/connect/connect-from-any-app). Copy the direct connection URL with TLS from Connect. The database role needs to create tables and enable pg_trgm.
+1. Create a Free project on [Neon](https://neon.com/docs/connect/connect-from-any-app). Copy the direct connection URL from Connect. Set sslmode=verify-full and omit channel_binding because the lib/pq version used here does not accept that option. The database role needs to create tables and enable pg_trgm.
 2. On Render choose New > Blueprint and select this repository and branch. Enter the Neon URI as secret DATABASE_URL and enter your expected frontend origin for ALLOWED_ORIGINS. The Free Docker service inherits PORT and runs Goose migrations at startup. Confirm /healthz and /readyz over HTTPS.
 3. Replace https://your-render-service.onrender.com in frontend/vercel.json with your Render service origin and push the config. On Vercel Hobby import the repository with root directory frontend, framework Vite, build command npm run build and output directory dist.
 4. Set ALLOWED_ORIGINS on Render to the actual Vercel production origin, without a trailing slash. Separate multiple trusted origins with commas. Keep SESSION_COOKIE_SECURE=true and store the Neon URI only in Render.
@@ -66,10 +66,37 @@ Open **My account** after signing in. Update the display name and upload or remo
 
 Run `node scripts/profile-smoke.mjs` against the running app to check account settings, order ownership, and authenticated listings. This test creates demo accounts, a listing, and an order.
 
+## CI/CD
+
+The GitHub Actions workflow checks pull requests and pushes to main. It builds the Compose stack, waits for readiness, runs Go checks against PostgreSQL, runs API smoke tests, and runs the Playwright checkout. Render automatically deploys main after CI checks pass.
+
+For Vercel, add VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID as GitHub Actions secrets. Add the repository variable VERCEL_CD_ENABLED with value true. Use the Vercel project from Deployment above. Run the workflow manually for the initial deploy if it is already enabled, or push to main. The frontend deployment job runs after verification and uploads a prebuilt production deployment. Git-triggered deploys in Vercel are disabled to avoid duplicate builds. See [Vercel CI configuration](https://vercel.com/kb/guide/how-can-i-use-github-actions-with-vercel).
+
+## Scope and decisions
+
+The demo focuses on comparing offers and completing a purchase for a digital game. Checkout allocates synthetic keys and simulates success or decline. Real payments, real keys, email recovery, and separate software and gift-card catalogs are outside the demo. The storefront supports English and EUR. Wishlist and guest cart are stored in the browser. Accounts, listings, purchases, and issued keys are stored in PostgreSQL.
+
+| Layer | Responsibility |
+| --- | --- |
+| React + TypeScript | Navigation, filters, independently loaded home blocks, account and checkout screens |
+| Go + chi | Input validation, session checks, offer management, transactional checkout |
+| PostgreSQL + Goose | Schema and seed data, search with pg_trgm, inventory, orders, comments and ratings |
+
+```mermaid
+flowchart LR
+  Browser -->|same-origin API| Proxy --> Go --> PostgreSQL
+  PostgreSQL --> Catalog[Product has seller offers and keys]
+  PostgreSQL --> Accounts[User has sessions, seller offers and orders]
+  PostgreSQL --> Home[Home sources and curated collections]
+```
+
+Stock is counted from unredeemed keys. Checkout locks the relevant offer and inventory rows, validates the total, and stores the price and issued key with the order. An idempotency key scoped to the buyer allows a safe retry.
+
 ## Verify
 
 - In `backend`, run `go test ./...` and `go vet ./...`.
-- In `frontend`, run `npm ci` and `npm run build`.
+- In `frontend`, run `npm ci`, `npm run build`, `npx playwright install chromium`, and `npm run test:e2e` against the running stack.
+- For Go integration tests set `TEST_WEB_ORIGIN=http://localhost:8080` and `TEST_DATABASE_URL=postgres://games:games@localhost:5433/games?sslmode=disable` before running `go test ./... -count=1` in `backend`. These are local demo defaults.
 - With Compose running, execute `node scripts/smoke.mjs` and `node scripts/auth-smoke.mjs` from the project root. Run `node scripts/checkout-smoke.mjs` to verify checkout with seeded inventory. The auth test registers a unique `@example.test` account and revokes its session when finished.
 
 The current session's visible conversation is in [docs/ai-log.md](docs/ai-log.md). Paste earlier conversations into the marked section before submission.

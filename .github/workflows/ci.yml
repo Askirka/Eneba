@@ -1,0 +1,78 @@
+name: Marketplace CI and deployment
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build and start the marketplace
+        run: docker compose up --build -d
+      - name: Wait for the API
+        run: curl -fsS --retry 20 --retry-delay 2 --retry-all-errors http://localhost:8080/readyz
+      - name: Run Go checks
+        working-directory: backend
+        env:
+          TEST_DATABASE_URL: postgres://games:games@localhost:5433/games?sslmode=disable
+          TEST_WEB_ORIGIN: http://localhost:8080
+        run: |
+          go test ./... -count=1
+          go vet ./...
+      - name: Run API smoke tests
+        run: |
+          node scripts/smoke.mjs
+          node scripts/checkout-smoke.mjs
+          API_ORIGIN=http://localhost:8080 node scripts/auth-smoke.mjs
+          WEB_ORIGIN=http://localhost:8080 node scripts/profile-smoke.mjs
+      - name: Run browser checkout
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Stop containers
+        if: always()
+        run: docker compose down
+
+  deploy-frontend:
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.VERCEL_CD_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency: marketplace-vercel-production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Push validated frontend to Vercel
+        run: |
+          npm install --global vercel@66.6.0
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"

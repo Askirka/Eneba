@@ -2,6 +2,8 @@
 .env.*
 !.env.example
 .vercel/
+playwright-report/
+test-results/
 node_modules/
 dist/
 *.exe

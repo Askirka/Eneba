@@ -3,6 +3,7 @@ services:
     name: game-market-api
     runtime: docker
     plan: free
+    autoDeployTrigger: checksPass
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
     healthCheckPath: /readyz

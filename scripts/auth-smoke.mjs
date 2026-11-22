@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 
 const origin = process.env.WEB_ORIGIN ?? 'http://localhost:3000'
+const apiOrigin = process.env.API_ORIGIN ?? origin
 const email = 'account-test-' + randomUUID() + '@example.test'
 const password = 'test-account-password-123'
 
@@ -10,7 +11,7 @@ async function request(method, endpoint, status, { cookie, body, csrf = true } =
   if (csrf) headers['X-Game-Market-Request'] = '1'
   if (cookie) headers.Cookie = cookie
   if (body) headers['Content-Type'] = 'application/json'
-  const response = await fetch(origin + '/api/auth/' + endpoint, {
+  const response = await fetch(apiOrigin + '/api/auth/' + endpoint, {
     method, headers, body: body && JSON.stringify(body),
   })
   assert.equal(response.status, status, endpoint)
