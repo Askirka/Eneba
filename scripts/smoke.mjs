@@ -8,8 +8,15 @@ async function json(path, status = 200) {
   return response.json()
 }
 
-const home = await json('/api/home')
-assert.deepEqual(home.map(block => block.type), ['hero', 'best_sellers', 'deals'])
+const banners = await json('/api/home/banners')
+assert.ok(banners.length > 1 && banners.every(banner => banner.image && banner.url))
+for (const name of ['best-sellers', 'deals', 'new-releases']) {
+  const block = await json('/api/home/' + name)
+  assert.ok(block.title && block.products.length)
+  if (name === 'deals') assert.ok(block.products.every(product => product.originalPriceCents > product.priceCents))
+}
+const sale = await json('/api/products?deals=1')
+assert.ok(sale.items.length && sale.items.every(product => product.discountPercent > 0))
 for (const term of ['Cyberpunk 2077', 'cyber', 'cyberpnk']) {
   const result = await json('/api/search?' + new URLSearchParams({ q: term }))
   assert.equal(result.items[0]?.id, 'cyberpunk-2077', term)

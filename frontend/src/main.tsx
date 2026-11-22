@@ -14,7 +14,7 @@ import { AccountControls, AuthPage } from './account'
 
 type Product = { id: string; title: string; platform: string; region: string; priceCents: number | null; originalPriceCents: number | null; discountPercent: number; bestOfferId: number | null; description: string; activation: string }
 type Offer = { id: number; sellerId: number; seller: string; rating: number; priceCents: number; originalPriceCents: number; discountPercent: number; stock: number }
-type Block = { type: string; title: string; copy: string; label: string; url: string; products: Product[] | null }
+type Block = { type: string; title: string; copy: string; label: string; url: string; products: Product[] }
 type Page = { items: Product[]; page: number; limit: number; total: number }
 
 class RequestError extends Error {
@@ -71,13 +71,40 @@ function Feedback({ pending, error, retry, children, missing = 'Game not found' 
 }
 
 function Home() {
-  const query = useQuery({ queryKey: ['home'], queryFn: ({ signal }) => get<Block[]>('/home', signal) })
+  return <><HomeBanners /><HomeShelf source="best-sellers" /><HomeShelf source="deals" /><HomeShelf source="new-releases" /></>
+}
+
+type Banner = { id: number; title: string; copy: string; label: string; url: string; image: string }
+
+function HomeBanners() {
+  const [selected, setSelected] = useState(0)
+  const query = useQuery({ queryKey: ['home', 'banners'], queryFn: ({ signal }) => get<Banner[]>('/home/banners', signal) })
+  const banners = query.data ?? []
+  const banner = banners[selected % banners.length]
   return <Feedback pending={query.isPending} error={query.error} retry={() => void query.refetch()}>
-    {query.data?.length === 0 && <p>No featured games are available. <Link to="/store">Browse the store</Link></p>}
-    {query.data?.map(block => block.type === 'hero'
-      ? <section key={block.type} className="hero"><h1>{block.title}</h1><p>{block.copy}</p><Link className="button" to={block.url}>{block.label}</Link></section>
-      : <section key={block.type}><div className="section-title"><h2>{block.title}</h2><Link to={block.url}>{block.label}</Link></div><Grid products={block.products ?? []} /></section>)}
+    {banner && <section className="hero" aria-label="Featured games">
+      <img className="hero-art" src={banner.image} alt="" />
+      <div className="hero-content" aria-live="polite">
+        <h1>{banner.title}</h1><p>{banner.copy}</p><Link className="button" to={banner.url}>{banner.label}</Link>
+      </div>
+      {banners.length > 1 && <div className="banner-controls">
+        <button aria-label="Previous banner" onClick={() => setSelected((selected + banners.length - 1) % banners.length)}>‹</button>
+        <span>{selected + 1} / {banners.length}</span>
+        <button aria-label="Next banner" onClick={() => setSelected((selected + 1) % banners.length)}>›</button>
+      </div>}
+    </section>}
   </Feedback>
+}
+
+function HomeShelf({ source }: { source: 'best-sellers' | 'deals' | 'new-releases' }) {
+  const query = useQuery({ queryKey: ['home', source], queryFn: ({ signal }) => get<Block>('/home/' + source, signal) })
+  const block = query.data
+  return <section className="home-shelf" aria-label={block?.title ?? source}>
+    <Feedback pending={query.isPending} error={query.error} retry={() => void query.refetch()} missing="Collection unavailable">
+      {block && <><div className="section-title"><h2>{block.title}</h2><Link to={block.url}>{block.label}</Link></div>
+        {block.products.length ? <Grid products={block.products} /> : <p>No items in this collection yet.</p>}</>}
+    </Feedback>
+  </section>
 }
 
 function CatalogControls({ params, update }: { params: URLSearchParams; update: (changes: Record<string, string>) => void }) {
@@ -104,6 +131,7 @@ function CatalogControls({ params, update }: { params: URLSearchParams; update: 
       {['min', 'max'].map(key => <label key={key}>{key === 'min' ? 'Min EUR' : 'Max EUR'}<input name={key} type="number" min="0" max="10000" step="0.01" defaultValue={params.has(key) ? Number(params.get(key)) / 100 : ''} /></label>)}
       <button>Apply price</button>
     </form>
+    <label className="inline-field"><input type="checkbox" checked={params.get('deals') === '1'} onChange={event => update({ deals: event.target.checked ? '1' : '' })} /> Discounted offers</label>
     <Link to="/store">Reset filters</Link>
   </aside>
 }

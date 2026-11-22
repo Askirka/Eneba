@@ -127,3 +127,12 @@ code { overflow-wrap: anywhere; }
 .offer-price del { color: #e1d3f2; font-size: .8rem; font-weight: 500; }
 .discount-tag { color: #a6edd8; font-size: .8rem; font-weight: 750; }
 .best-offer > .offer-price { font-size: 1.4rem; color: #ffcf80; }
+.hero { position: relative; isolation: isolate; overflow: hidden; min-height: 18rem; }
+.hero-art { position: absolute; z-index: -2; inset: 0 0 0 auto; width: 55%; height: 100%; object-fit: cover; object-position: center 35%; }
+.hero::after { content: ''; position: absolute; z-index: -1; inset: 0; background: linear-gradient(90deg,#211131 18%,#211131ed 46%,transparent 100%); }
+.hero-content { max-width: 34rem; }
+.banner-controls { display: flex; align-items: center; gap: .65rem; margin-top: 1rem; }
+.banner-controls button { min-width: 2.5rem; }
+.home-shelf { margin-block: 1.5rem; }
+.filters .inline-field { display: flex; align-items: center; }
+.filters .inline-field input { width: auto; }

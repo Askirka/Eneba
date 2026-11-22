@@ -28,7 +28,7 @@ Vercel forwards /api before the SPA fallback so cookies stay on the frontend ori
 
 | Request | Response |
 | --- | --- |
-| GET /api/home | Ordered hero, best sellers, and deals |
+| GET /api/home/{block} | Independent banners, best-sellers, deals, and new-releases sources |
 | GET /api/products?q=cyberpnk | Paginated game catalog |
 | GET /api/search?q=witchr | Same search and filter contract as the catalog |
 | GET /api/products/hades | Game details and seller offers |
@@ -41,7 +41,7 @@ Vercel forwards /api before the SPA fallback so cookies stay on the frontend ori
 
 Catalog filters are `platform`, `region`, `min`, and `max`; price bounds are integer EUR cents. Sort by `relevance`, `price_asc`, `price_desc`, or `title`. Use `page` and `limit` for pagination. PostgreSQL ranks exact titles before substring matches and uses `pg_trgm` word similarity for misspellings. Minimum prices come from offers with available keys.
 
-Homepage configuration comes from `homepage_blocks`. Each listing block has its own ordered product collection in `homepage_products`. The API composes those collections with live catalog prices. The hero reads its copy and CTA from its configuration row.
+Banners read from `home_banners`. Best sellers and new releases use separate curated collections in `homepage_products`. Deals query discounted, available offers. Each block is fetched and rendered independently.
 
 ## Accounts
 

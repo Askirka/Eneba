@@ -41,6 +41,7 @@ type Block struct {
 type Filter struct {
 	Search, Platform, Region, Sort string
 	Min, Max, Page, Limit          int
+	Deals                          bool
 }
 
 type Repository struct{ DB *sqlx.DB }
@@ -59,10 +60,11 @@ const filterQuery = ` WHERE p.deleted_at IS NULL AND
 AND ($3 = '' OR p.platform = $3)
 AND ($4 = '' OR p.region = $4)
 AND ($5::integer = 0 OR best.price_cents >= $5)
-AND ($6::integer = 0 OR best.price_cents <= $6)`
+AND ($6::integer = 0 OR best.price_cents <= $6)
+AND (NOT $7::boolean OR best.discount_percent>0)`
 
 func (r Repository) List(ctx context.Context, f Filter, escapedSearch string) ([]Product, int, error) {
-	args := []any{f.Search, escapedSearch, f.Platform, f.Region, f.Min, f.Max}
+	args := []any{f.Search, escapedSearch, f.Platform, f.Region, f.Min, f.Max, f.Deals}
 	rank := `CASE WHEN lower(title) = lower($1) THEN 0 WHEN title ILIKE '%' || $2 || '%' ESCAPE '!' THEN 1 ELSE 2 END, word_similarity($1,title) DESC, title`
 	orders := map[string]string{"relevance": rank, "price_asc": "price_cents ASC NULLS LAST", "price_desc": "price_cents DESC NULLS LAST", "title": "title ASC"}
 	order, ok := orders[f.Sort]
@@ -75,7 +77,7 @@ func (r Repository) List(ctx context.Context, f Filter, escapedSearch string) ([
 	}
 	products := []Product{}
 	args = append(args, f.Limit, (f.Page-1)*f.Limit)
-	err := r.DB.SelectContext(ctx, &products, productQuery+filterQuery+" ORDER BY "+order+", id LIMIT $7 OFFSET $8", args...)
+	err := r.DB.SelectContext(ctx, &products, productQuery+filterQuery+" ORDER BY "+order+", id LIMIT $8 OFFSET $9", args...)
 	return products, total, err
 }
 
@@ -90,12 +92,6 @@ func (r Repository) Detail(ctx context.Context, id string) (Product, []Offer, er
  LEFT JOIN inventory_keys k ON k.offer_id=o.id AND k.redeemed_at IS NULL
  WHERE o.product_id=$1 AND o.deleted_at IS NULL GROUP BY o.id,s.id ORDER BY o.effective_price_cents,(count(k.id)>0) DESC,o.id`, id)
 	return product, offers, err
-}
-
-func (r Repository) Blocks(ctx context.Context) ([]Block, error) {
-	blocks := []Block{}
-	err := r.DB.SelectContext(ctx, &blocks, "SELECT type,title,copy,cta_label,cta_url FROM homepage_blocks ORDER BY position")
-	return blocks, err
 }
 
 func (r Repository) BlockProducts(ctx context.Context, blockType string) ([]Product, error) {
