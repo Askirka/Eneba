@@ -176,7 +176,9 @@ function Store() {
         <div className="results-bar"><p role="status">{data.total} {data.total === 1 ? 'game' : 'games'}</p><label>Sort<select value={params.get('sort') ?? ''} onChange={event => update({ sort: event.target.value })}>
       <option value="">Relevance</option><option value="price_asc">Lowest price</option><option value="price_desc">Highest price</option><option value="title">Title</option>
     </select></label></div>
-        {data.items.length ? <Grid products={data.items} /> : <p>No games match these filters.</p>}
+        {data.items.length ? <Grid products={data.items} /> : <div className="empty-results"><h2>No matching games</h2><p>Try a shorter title or adjust your filters.</p>
+          {params.get('q') && <button className="secondary" onClick={() => update({ q: '' })}>Clear search</button>}
+          <Link to="/store">Reset all filters</Link></div>}
         <nav className="pages" aria-label="Catalog pages">
           <button disabled={data.page <= 1} onClick={() => changePage(data.page - 1)}>Previous</button>
           <span>Page {data.page}</span>
@@ -190,8 +192,11 @@ function Store() {
 function Game() {
   const id = useParams().id!
   const query = useQuery({ queryKey: ['product', id], queryFn: ({ signal }) => get<{ product: Product; offers: Offer[] }>('/products/' + encodeURIComponent(id), signal) })
+  const [offerSort, setOfferSort] = useState('price')
   const product = query.data?.product
   const best = query.data?.offers[0]
+  const offers = query.data?.offers ?? []
+  const comparison = offerSort === 'rating' ? [...offers].sort((a, b) => b.rating - a.rating || a.priceCents - b.priceCents || a.id - b.id) : offers
   return <Feedback pending={query.isPending} error={query.error} retry={() => void query.refetch()}>
     {product && <><Link to="/store">Back to store</Link><div className="game-intro"><Cover key={product.id} product={product} /><div><h1>{product.title}</h1>
       <p className="meta">{product.platform} · {product.region}</p>
@@ -201,9 +206,13 @@ function Game() {
         <div><h2>Best price</h2><p><Link to={'/sellers/' + best.sellerId}>{best.seller}</Link> · {best.stock > 0 ? best.stock + ' available' : 'Not available right now'}</p></div>
         <OfferPrice offer={best} />{best.stock > 0 && <OfferActions id={best.id} />}
       </section>}
-      <h2>Seller offers</h2>
+      <div className="section-title"><h2>Seller offers</h2>
+        {offers.length > 1 && <label>Sort offers <select value={offerSort} onChange={event => setOfferSort(event.target.value)}>
+          <option value="price">Lowest price</option><option value="rating">Seller rating</option>
+        </select></label>}
+      </div>
       {!query.data?.offers.length && <p>No offers are available.</p>}
-      <ul className="offers">{query.data?.offers.map(offer => <li key={offer.id}>
+      <ul className="offers">{comparison.map(offer => <li key={offer.id}>
         <strong><Link to={'/sellers/' + offer.sellerId}>{offer.seller}</Link></strong><span>{offer.rating ? offer.rating.toFixed(2) + ' / 5' : 'New seller'}</span><span>{offer.stock ? offer.stock + ' available' : 'Not available right now'}</span><OfferPrice offer={offer} />{offer.stock > 0 && <OfferActions id={offer.id} />}
       </li>)}</ul><ProductComments key={product.id} productId={product.id} />
     </>}

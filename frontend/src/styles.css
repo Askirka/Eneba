@@ -177,7 +177,7 @@ code { overflow-wrap: anywhere; }
 .search-popup p, .search-popup a { margin: 0; padding: var(--space-2); }
 .search-popup ul { list-style: none; margin: 0; padding: 0; }
 .search-popup a { display: grid; text-decoration: none; }
-.search-popup a:hover, .search-popup a:focus-visible { background: var(--secondary); }
+.search-popup a:hover, .search-popup a:focus-visible, .search-popup [aria-selected=true] { background: var(--secondary); }
 .search-popup small { color: var(--muted); }
 .card-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-1); }
 .wishlist-toggle { flex: none; min-width: 1.8rem; padding: .2rem; font-size: 1rem; line-height: 1; }
@@ -188,3 +188,4 @@ code { overflow-wrap: anywhere; }
   .site-footer { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .site-footer > div { grid-column: 1 / -1; }
 }
+.empty-results { padding: var(--space-3); background: var(--panel); border-radius: var(--radius-panel); } .empty-results a { margin-inline-start: var(--space-2); }
