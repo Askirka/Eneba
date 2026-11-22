@@ -1,5 +1,19 @@
 # AI chat log
 
+## English summary
+
+- Built a digital game marketplace for the Eneba internship assignment.
+- The frontend uses React and TypeScript, and the API uses Go with chi.
+- PostgreSQL stores the catalog, accounts, offers, inventory, and orders.
+- The storefront includes independent homepage blocks, filters, and typo-tolerant search.
+- Product pages let buyers compare offers, prices, discounts, and seller ratings.
+- Sellers can publish offers, adjust prices, and restock demo keys.
+- Signed-in buyers can check out with simulated payment, receive demo keys, and review past orders.
+- Go integration tests, API smoke tests, and Playwright cover key flows and responsive layouts.
+- The public demo uses Vercel, Render, and Neon. GitHub Actions runs CI and supports deployment.
+- AI assistants used during the project included Claude, ChatGPT, and Codex.
+- Parts of the original conversation are in Russian and are preserved verbatim below.
+
 ## Earlier chats — paste full transcripts here
 
 <!-- Paste the full logs from earlier chats with other assistants above this line. -->
