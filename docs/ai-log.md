@@ -1,5 +1,7 @@
 # AI chat log
 
+English translation: [ai-log.en.md](ai-log.en.md).
+
 ## English summary
 
 - Built a digital game marketplace for the Eneba internship assignment.

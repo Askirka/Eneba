@@ -101,4 +101,4 @@ Stock is counted from unredeemed keys. Checkout locks the relevant offer and inv
 - For Go integration tests set `TEST_WEB_ORIGIN=http://localhost:8080` and `TEST_DATABASE_URL=postgres://games:games@localhost:5433/games?sslmode=disable` before running `go test ./... -count=1` in `backend`. These are local demo defaults.
 - With Compose running, execute `node scripts/smoke.mjs` and `node scripts/auth-smoke.mjs` from the project root. Run `node scripts/checkout-smoke.mjs` to verify checkout with seeded inventory. The auth test registers a unique `@example.test` account and revokes its session when finished.
 
-The current session's visible conversation is in [docs/ai-log.md](docs/ai-log.md). Paste earlier conversations into the marked section before submission.
+The current session's visible conversation is available as the [original AI log](docs/ai-log.md) and its [English translation](docs/ai-log.en.md). Paste earlier conversations into the marked section before submission.
