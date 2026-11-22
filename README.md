@@ -8,7 +8,7 @@ Educational digital game marketplace. The starter includes a PostgreSQL-backed c
 docker compose up --build -d
 ```
 
-Open http://localhost:3000. The Go API listens on http://localhost:8080. On first startup, Goose creates the tables and seeds 22 games, three sellers, offers, and synthetic inventory. PostgreSQL persists in a named volume.
+Open http://localhost:3000. The Go API listens on http://localhost:8080. On first startup, Goose creates the tables and seeds 40 games, three sellers, offers, and synthetic inventory. PostgreSQL persists in a named volume.
 
 The Compose default password is for the local demo. Copy `.env.example` to `.env` to override it on first initialization. For standalone development, provide `DATABASE_URL` to the Go API and run `npm ci && npm run dev` in `frontend`.
 

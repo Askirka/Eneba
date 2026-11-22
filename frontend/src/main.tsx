@@ -95,7 +95,7 @@ function CatalogControls({ params, update }: { params: URLSearchParams; update: 
   }
   return <aside className="filters" aria-label="Filters"><h2>Filters</h2>
     <label>Title<input value={search} maxLength={100} onChange={event => setSearch(event.target.value)} /></label>
-    {Object.entries({ platform: ['Steam', 'Xbox', 'GOG'], region: ['Global', 'Europe'] }).map(([key, options]) =>
+    {Object.entries({ platform: ['Steam', 'Xbox', 'GOG', 'Epic'], region: ['Global', 'Europe', 'North America'] }).map(([key, options]) =>
       <label key={key}>{key}<select value={params.get(key) ?? ''} onChange={event => update({ [key]: event.target.value })}>
         <option value="">All</option>{options.map(option => <option key={option}>{option}</option>)}
       </select></label>)}
