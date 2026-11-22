@@ -1,9 +1,11 @@
 import { apiFetch } from './api-fetch'
 import { FormEvent, ReactNode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Link, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { BrowserRouter, Link, Route, Routes, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import './styles.css'
+import { SearchBox } from './search-box'
+import { WishlistButton, WishlistLink, WishlistPage, WishlistProvider } from './wishlist'
 import { Cover } from './cover'
 import { ProductRating } from './rating'
 import { OfferPrice } from './price'
@@ -31,20 +33,32 @@ async function get<T>(path: string, signal: AbortSignal): Promise<T> {
 function Header() {
   const cart = useCart()
   const location = useLocation()
-  const navigate = useNavigate()
-  const current = new URLSearchParams(location.search).get('q') ?? ''
-  return <header><div className="masthead"><Link className="brand" to="/">Game Market</Link>
-    <form role="search" key={current} onSubmit={event => {
-      event.preventDefault()
-      const q = String(new FormData(event.currentTarget).get('q')).trim()
-      navigate('/store' + (q ? '?' + new URLSearchParams({ q }) : ''))
-    }}>
-      <input aria-label="Search games" name="q" defaultValue={current} placeholder="Search games" maxLength={100} />
-      <button>Search</button>
-    </form>
-        <Link className="cart-link" to="/cart">Cart <span>{cart.ids.length}</span></Link><AccountControls />
-    </div><nav className="site-nav" aria-label="Main navigation"><Link to="/">Home</Link><Link to="/store">Browse games</Link></nav>
+  return <header>
+    <div className="utility-bar">
+      <label>Language <select aria-label="Language"><option>English</option></select></label>
+      <label>Currency <select aria-label="Currency"><option>EUR</option></select></label>
+      <WishlistLink />
+    </div>
+    <div className="masthead">
+      <Link className="brand" to="/">Game Market</Link>
+      <SearchBox key={location.pathname + location.search} />
+      <Link className="cart-link" to="/cart">Cart <span>{cart.ids.length}</span></Link>
+      <AccountControls />
+    </div>
+    <nav className="site-nav" aria-label="Main navigation">
+      <Link to="/store">Games</Link><Link to="/store?platform=Steam">Steam</Link>
+      <Link to="/store?platform=Xbox">Xbox</Link><Link to="/store?platform=GOG">GOG</Link>
+      <Link to="/store?platform=Epic">Epic</Link><Link to="/store?deals=1">Deals</Link>
+    </nav>
   </header>
+}
+
+function Footer() {
+  return <footer className="site-footer">
+    <div><strong>Game Market</strong><p>Educational marketplace demo</p></div>
+    <nav aria-label="Footer store"><strong>Explore</strong><Link to="/store">Games</Link><Link to="/store?deals=1">Deals</Link></nav>
+    <nav aria-label="Footer account"><strong>Your account</strong><Link to="/account">My account</Link><Link to="/wishlist">Wishlist</Link><Link to="/cart">Cart</Link></nav>
+  </footer>
 }
 
 function Grid({ products }: { products: Product[] }) {
@@ -55,7 +69,7 @@ function Grid({ products }: { products: Product[] }) {
         <Cover product={product} /><span className="card-platform">{product.platform}</span>
       </Link>
       <div className="card-details">
-        <Link className="card-title" to={path}>{product.title}</Link>
+        <div className="card-title-row"><Link className="card-title" to={path}>{product.title}</Link><WishlistButton game={product} /></div>
         <span className="meta">{product.region}</span>
         <div className="card-price">{product.priceCents === null ? 'Not available right now' : <><small>From</small><OfferPrice offer={product} /></>}</div>
         {product.bestOfferId !== null && <OfferActions id={product.bestOfferId} />}
@@ -224,7 +238,7 @@ function SellerPage() {
 
 const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 createRoot(document.getElementById('root')!).render(
-  <QueryClientProvider client={client}><BrowserRouter><CartProvider><Header /><main>
-    <Routes><Route path="/" element={<Home />} /><Route path="/store" element={<Store />} /><Route path="/games/:id" element={<Game />} /><Route path="/account" element={<ProfilePage />} /><Route path="/account/orders/:id" element={<OrderPage />} /><Route path="/sellers/:id" element={<SellerPage />} /><Route path="/cart" element={<PurchasePage />} /><Route path="/checkout" element={<PurchasePage checkout />} /><Route path="/login" element={<AuthPage key="login" mode="login" />} /><Route path="/register" element={<AuthPage key="register" mode="register" />} /><Route path="*" element={<h1>Page not found</h1>} /></Routes>
-  </main><footer>Game Market · Educational demo</footer></CartProvider></BrowserRouter></QueryClientProvider>
+  <QueryClientProvider client={client}><BrowserRouter><WishlistProvider><CartProvider><Header /><main>
+    <Routes><Route path="/" element={<Home />} /><Route path="/store" element={<Store />} /><Route path="/games/:id" element={<Game />} /><Route path="/account" element={<ProfilePage />} /><Route path="/account/orders/:id" element={<OrderPage />} /><Route path="/sellers/:id" element={<SellerPage />} /><Route path="/wishlist" element={<WishlistPage />} /><Route path="/cart" element={<PurchasePage />} /><Route path="/checkout" element={<PurchasePage checkout />} /><Route path="/login" element={<AuthPage key="login" mode="login" />} /><Route path="/register" element={<AuthPage key="register" mode="register" />} /><Route path="*" element={<h1>Page not found</h1>} /></Routes>
+  </main><Footer /></CartProvider></WishlistProvider></BrowserRouter></QueryClientProvider>
 )
