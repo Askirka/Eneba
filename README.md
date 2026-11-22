@@ -72,4 +72,4 @@ Run `node scripts/profile-smoke.mjs` against the running app to check account se
 - In `frontend`, run `npm ci` and `npm run build`.
 - With Compose running, execute `node scripts/smoke.mjs` and `node scripts/auth-smoke.mjs` from the project root. Run `node scripts/checkout-smoke.mjs` to verify checkout with seeded inventory. The auth test registers a unique `@example.test` account and revokes its session when finished.
 
- GitHub publication, public hosting, and the full AI conversation transcript are pending. The active GoLand Air session contains the original messages. Keep its transcript with the submission once exported or copied from the IDE.
+The current session's visible conversation is in [docs/ai-log.md](docs/ai-log.md). Paste earlier conversations into the marked section before submission.
